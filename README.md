@@ -1,4 +1,4 @@
-# <img src='https://rawgithub.com/FortAwesome/Font-Awesome/master/advanced-options/raw-svg/solid/cog.svg' card_color='#40DBB0' width='50' height='50' style='vertical-align:bottom'/> Mycroft Mark 2
+# <img src='https://github.com/FortAwesome/Font-Awesome/blob/master/svgs/solid/cog.svg' card_color='#40DBB0' width='50' height='50' style='vertical-align:bottom'/> Mycroft Mark 2
 Customize your Mark 2
 
 ## About
