@@ -28,6 +28,71 @@ from mycroft.util.parse import normalize
 from mycroft.audio import wait_while_speaking
 from mycroft import intent_file_handler
 
+import pyaudio
+import struct
+import math
+from threading import Thread
+
+from mycroft import MycroftSkill
+
+FORMAT = pyaudio.paInt16
+SHORT_NORMALIZE = (1.0/32768.0)
+CHANNELS = 2
+RATE = 44100
+INPUT_BLOCK_TIME = 0.05
+INPUT_FRAMES_PER_BLOCK = int(RATE*INPUT_BLOCK_TIME)
+
+def get_rms(block):
+    """ RMS amplitude is defined as the square root of the
+    mean over time of the square of the amplitude.
+     so we need to convert this string of bytes into
+     a string of 16-bit samples...
+    """
+    # we will get one short out for each
+    # two chars in the string.
+    count = len(block) / 2
+    format = "%dh" % (count)
+    shorts = struct.unpack(format, block)
+
+    # iterate over the block.
+    sum_squares = 0.0
+    for sample in shorts:
+        # sample is a signed short in +/- 32768.
+        # normalize it to 1.0
+        n = sample * SHORT_NORMALIZE
+        sum_squares += n * n
+
+    return math.sqrt(sum_squares / count)
+
+
+def find_input_device(pa):
+    """ Find best input device. """
+    device_index = None
+    for i in range( pa.get_device_count()):
+        devinfo = pa.get_device_info_by_index(i)
+        print( "Device %d: %s"%(i,devinfo["name"]))
+
+        for keyword in ["mic","input"]:
+            if keyword in devinfo["name"].lower():
+                print( "Found an input: device %d - %s"%(i,devinfo["name"]))
+                device_index = i
+                return device_index
+
+    if device_index == None:
+        print("No preferred input found; using default input device.")
+
+    return device_index
+
+
+def open_mic_stream(pa):
+    """ Open microphone stream from first best microphone device. """
+    device_index = find_input_device(pa)
+
+    stream = pa.open(format=FORMAT, channels=CHANNELS, rate=RATE,
+                     input=True, input_device_index=device_index,
+                     frames_per_buffer=INPUT_FRAMES_PER_BLOCK)
+
+    return stream
 
 
 class Mark2(MycroftSkill):
@@ -52,11 +117,26 @@ class Mark2(MycroftSkill):
 
         self.has_show_page = False  # resets with each handler
 
+        self.setup_mic_listening()
+
+    def setup_mic_listening(self):
+        """ Initializes PyAudio, starts an input stream and launches the
+            listening thread.
+        """
+        self.pa = pyaudio.PyAudio()
+        self.stream = open_mic_stream(self.pa)
+        self.amplitude = 0
+        self.running = True
+        self.thread = Thread(target=self.listen_thread)
+        self.thread.daemon = True
+        self.thread.start()
+
     def initialize(self):
         # Initialize...
         self.brightness_dict = self.translate_namedvalues('brightness.levels')
         self.color_dict = self.translate_namedvalues('colors')
         self.settings['web eye color'] = self.settings['eye color']
+        self.gui['volume'] = 0
 
         try:
             # Handle changing the eye color once Mark 1 is ready to go
@@ -110,6 +190,26 @@ class Mark2(MycroftSkill):
             # Connected at startup: setting eye color
             self.enclosure.mouth_reset()
 
+    def listen_thread(self):
+        """ listen on mic input until self.running is False. """
+        while(self.running):
+            self.listen()
+
+    def listen(self):
+        """ Read microphone level and store rms into self.gui['volume']. """
+        try:
+            block = self.stream.read(INPUT_FRAMES_PER_BLOCK)
+        except IOError as e:
+            # damn
+            self.errorcount += 1
+            self.log.error("(%d) Error recording: %s"%(self.errorcount,e))
+            self.noisycount = 1
+            return
+
+        amplitude = int(get_rms(block) * 10)
+        if self.gui['volume'] != amplitude:
+            self.gui['volume'] = amplitude
+
     def shutdown(self):
         # Gotta clean up manually since not using add_event()
         self.bus.remove('mycroft.skill.handler.start',
@@ -127,7 +227,9 @@ class Mark2(MycroftSkill):
         self.bus.remove('enclosure.mouth.viseme',
                         self.on_handler_speaking)
 
-        super().shutdown()
+        self.running = False
+        self.thread.join()
+        self.stream.close()
 
     #####################################################################
     # Manage "busy" visual
@@ -187,6 +289,7 @@ class Mark2(MycroftSkill):
     def on_handler_speaking(self, message):
         if not self.has_show_page:
             self.gui["viseme"] = message.data["code"]
+            print(self.gui['viseme'])
             self.gui.show_page("speaking.qml")
 
     #####################################################################

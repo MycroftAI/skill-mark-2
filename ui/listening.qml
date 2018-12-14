@@ -217,26 +217,28 @@ Mycroft.Delegate {
     }
     // Timed update of which element to show
     Timer {
-	id: tmr
-	interval: 200
-	running: true
-	repeat: true
-	property int frame: 1
-	onTriggered: frame = Qt.binding(function() {
+        id: tmr
+        interval: 200
+        running: true
+        repeat: true
+        property int frame: 1
+
+        onTriggered: frame = Qt.binding(function() {
             // The frame variable here can be replaced with a volume level
             // variable.
-            switch (frame) {
-                case 1:
+
+            switch (sessionData.volume) {
+                case 0:
                     frame1.visible = true;
                     frame2.visible = false;
                     frame3.visible = false;
                     break;
-                case 2:
+                case 1:
                     frame1.visible = false;
                     frame2.visible = true;
                     frame3.visible = false;
                     break;
-                case 3:
+                default:
                     frame1.visible = false;
                     frame2.visible = false;
                     frame3.visible = true;
@@ -255,6 +257,6 @@ Mycroft.Delegate {
                 return 1;
             }
 	});
-    }
 
+    }
 }
