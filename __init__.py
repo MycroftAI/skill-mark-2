@@ -242,7 +242,6 @@ class Mark2(MycroftSkill):
         if "TimeSkill.update_display" in handler:
             return
 
-        self.has_show_page = False
         self.hourglass_info[handler] = self.interaction_id
         # time.sleep(0.25)
         if self.hourglass_info[handler] == self.interaction_id:
@@ -254,7 +253,8 @@ class Mark2(MycroftSkill):
             # self.gui.show_page("thinking.qml")
 
     def on_gui_page_show(self, message):
-        if "Mark2" not in message.data.get("handler", ""):
+#        print('HANDLER', message.data.get("__from", ""))
+        if "mark-2" not in message.data.get("__from", ""):
             # Some skill other than the handler is showing a page
             # TODO: Maybe just check for the "speaking.qml" page?
             self.has_show_page = True
@@ -272,6 +272,8 @@ class Mark2(MycroftSkill):
         if "TimeSkill.update_display" in handler:
             return
 
+        self.has_show_page = False
+
         try:
             if self.hourglass_info[handler] == -1:
                 self.enclosure.reset()
@@ -287,10 +289,10 @@ class Mark2(MycroftSkill):
     # Manage "speaking" visual
 
     def on_handler_speaking(self, message):
+        print(message.data["code"], self.has_show_page)
         if not self.has_show_page:
-            self.gui["viseme"] = message.data["code"]
-            print(self.gui['viseme'])
             self.gui.show_page("speaking.qml")
+        self.gui["viseme"] = message.data["code"]
 
     #####################################################################
     # Manage "idle" visual state
