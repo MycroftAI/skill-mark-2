@@ -163,6 +163,10 @@ class Mark2(MycroftSkill):
             self.bus.on('mycroft.skill.handler.complete',
                         self.on_handler_complete)
 
+            self.bus.on('recognizer_loop:sleep',
+                        self.on_handler_sleep)
+            self.bus.on('mycroft.awoken',
+                        self.on_handler_awoken)
             self.bus.on('recognizer_loop:audio_output_start',
                         self.on_handler_interactingwithuser)
             self.bus.on('enclosure.mouth.think',
@@ -218,6 +222,10 @@ class Mark2(MycroftSkill):
                         self.on_handler_complete)
         self.bus.remove('recognizer_loop:audio_output_start',
                         self.on_handler_interactingwithuser)
+        self.bus.remove('recognizer_loop:sleep',
+                        self.on_handler_sleep)
+        self.bus.remove('mycroft.awoken',
+                        self.on_handler_awoken)
         self.bus.remove('enclosure.mouth.think',
                         self.on_handler_interactingwithuser)
         self.bus.remove('enclosure.mouth.events.deactivate',
@@ -263,6 +271,14 @@ class Mark2(MycroftSkill):
         # Every time we do something that the user would notice, increment
         # an interaction counter.
         self.interaction_id += 1
+
+    def on_handler_sleep(self, message):
+        """ Show resting face when going to sleep. """
+        self.gui.show_page("resting.qml")
+
+    def on_handler_awoken(self, message):
+        """ Show awake face when sleep ends. """
+        self.gui.show_page("awake.qml")
 
     def on_handler_complete(self, message):
         handler = message.data.get("handler", "")
