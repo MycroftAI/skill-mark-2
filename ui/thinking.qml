@@ -4,6 +4,7 @@ import QtQuick.Controls 2.0
 import org.kde.kirigami 2.4 as Kirigami
 
 import Mycroft 1.0 as Mycroft
+import org.kde.lottie 1.0
 
 Mycroft.Delegate {
     skillBackgroundSource: Qt.resolvedUrl('bg.png')
@@ -16,71 +17,21 @@ Mycroft.Delegate {
         Item {
             height: Kirigami.Units.largeSpacing * 5
         }
-        RowLayout {
-           Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-           id: row1
-           Rectangle {
-                id: rectangle
-                width: 200
-                height: 200
-                color: "#00000000"
-                
-                Image {
-                    id: left_lower_lid
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    y: 86
-                    width: 78
-                    height: 50
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("face/lid.svg")
-                }
-                
-                Image {
-                    id: left_upper_lid
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    y: 41
-                    width: 78
-                    height: 50
-                    source: Qt.resolvedUrl("face/upper-lid.svg")
-                    fillMode: Image.PreserveAspectFit
-                }
-            } 
-            Rectangle {
-                id: rectangle2
-                width: 200
-                height: 200
-                color: "#00000000"
-
-                Image {
-                    id: right_lower_lid
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    y: 86
-                    width: 78
-                    height: 50
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("face/lid.svg")
-                }
-                
-                Image {
-                    id: right_upper_lid
-                    y: 41
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 78
-                    height: 50
-                    source: Qt.resolvedUrl("face/upper-lid.svg")
-                    fillMode: Image.PreserveAspectFit
-                }
+           
+        LottieAnimation {
+            id: thinking
+            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 14
+            Layout.preferredHeight: Kirigami.Units.gridUnit * 14
+            source: Qt.resolvedUrl("christmas_tree.json")
+            //source: Qt.resolvedUrl("thinking.json")
+            loops: Animation.Infinite
+            fillMode: Image.PreserveAspectFit
+            running: true
+                    
+            onStatusChanged: {
+                console.log(thinking.status, errorString)
             }
-        }
-        
-        Item {
-            height: Kirigami.Units.largeSpacing * 9
-        }
-        Image {
-            id: smile
-            Layout.alignment: Qt.AlignHCenter
-	    fillMode: Image.PreserveAspectFit
-	    source: Qt.resolvedUrl("face/Smile.svg")
-	}
+        }        
     }
 }
