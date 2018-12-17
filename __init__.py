@@ -206,7 +206,7 @@ class Mark2(MycroftSkill):
             self.noisycount = 1
             return
 
-        amplitude = int(get_rms(block) * 10)
+        amplitude = int(get_rms(block) * 20)
         if self.gui['volume'] != amplitude:
             self.gui['volume'] = amplitude
 

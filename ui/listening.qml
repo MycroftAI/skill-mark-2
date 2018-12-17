@@ -6,15 +6,14 @@ import org.kde.kirigami 2.4 as Kirigami
 import Mycroft 1.0 as Mycroft
 
 Mycroft.Delegate {
-    function getLvlImg(volume, pos){
+    function getLength(volume, pos) {
         var val = (volume * 2 + pos);
         if (val < 0)
             val = 0;
         else if (val > 6)
-            val = 6;
-
-        console.log("bars/lvl" + val + ".svg");
-        return "bars/lvl" + val + ".svg"
+        val = 6;
+        console.log(val)
+        return 36 + 36 * val;
     }
 
     skillBackgroundSource: Qt.resolvedUrl('bg.png')
@@ -36,63 +35,72 @@ Mycroft.Delegate {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Image {
+                Rectangle {
                     id: f11
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl(getLvlImg(sessionData.volume, -2))
+                    width: 36
+                    radius: 18
+                    height: getLength(sessionData.volume, -2)
+                    color: "#40DBB0"
                 }
             }
             Rectangle {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Image {
+                Rectangle {
                     id: f12
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl(getLvlImg(sessionData.volume, -1))
+                    width: 36
+                    radius: 18
+                    height: getLength(sessionData.volume, -1)
+                    color: "#40DBB0"
                 }
             }
             Rectangle {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Image {
+                Rectangle {
                     id: f13
-                    fillMode: Image.PreserveAspectFit
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    source: Qt.resolvedUrl(getLvlImg(sessionData.volume, 0))
+                    width: 36
+                    radius: 18
+                    height: getLength(sessionData.volume, 0)
+                    color: "#40DBB0"
                 }
             }
             Rectangle {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Image {
+                Rectangle {
                     id: f14
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl(getLvlImg(sessionData.volume, -1))
+                    width: 36
+                    radius: 18
+                    height: getLength(sessionData.volume, -1)
+                    color: "#40DBB0"
                 }
             }
             Rectangle {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Image {
+                Rectangle {
                     id: f15
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl(getLvlImg(sessionData.volume, -2))
+                    width: 36
+                    radius: 18
+                    height: getLength(sessionData.volume, -2)
+                    color: "#40DBB0"
                 }
             }
         }
-        
     }
 }
