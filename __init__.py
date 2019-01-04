@@ -315,38 +315,35 @@ class Mark2(MycroftSkill):
 
     def start_idle_check(self):
         # Clear any existing checker
+        print("!!!!! START IDLE CHECK !!!!!")
         self.cancel_scheduled_event('IdleCheck')
+        self.idle_count = 0
 
-        if self.settings['auto_dim_eyes']:
+        if True:
             # Schedule a check every few seconds
             self.schedule_repeating_event(self.check_for_idle, None,
                                           Mark2.IDLE_CHECK_FREQUENCY,
                                           name='IdleCheck')
 
     def check_for_idle(self):
-        if not self.settings['auto_dim_eyes']:
-            self.cancel_scheduled_event('IdleCheck')
-            return
-
-        if self.enclosure.display_manager.get_active() == '':
+        print('CHECING IDLE')
+        if True:
             # No activity, start to fall asleep
             self.idle_count += 1
 
-            if self.idle_count == 2:
+            if self.idle_count == 5:
                 # Go into a 'sleep' visual state
-                self.gui.show_page("idle.qml")
-            elif self.idle_count > 2:
+                print("TRIGGERED!")
+                self.bus.emit(Message('mycroft-date-time.mycroftai.idle'))
+            elif self.idle_count > 5:
                 self.cancel_scheduled_event('IdleCheck')
 
-                # Go into an 'inattentive' visual state
-                self.gui.show_page("resting.qml")
-        else:
-            self.idle_count = 0
 
     def handle_listener_started(self, message):
-        if not self.settings['auto_dim_eyes']: 
+        if False:
             self.cancel_scheduled_event('IdleCheck')
         else:
+            print("IDLE CHECK!")
             # Check if in 'idle' state and visually come to attention
             if self.idle_count > 2:
                 # Perform 'waking' animation
