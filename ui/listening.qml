@@ -6,6 +6,16 @@ import org.kde.kirigami 2.4 as Kirigami
 import Mycroft 1.0 as Mycroft
 
 Mycroft.Delegate {
+    function getLength(volume, pos) {
+        var val = (volume * 2 + pos);
+        if (val < 0)
+            val = 0;
+        else if (val > 6)
+        val = 6;
+        console.log(val)
+        return 36 + 36 * val;
+    }
+
     skillBackgroundSource: Qt.resolvedUrl('bg.png')
     ColumnLayout {
         id: grid
@@ -18,243 +28,79 @@ Mycroft.Delegate {
         }
         RowLayout {
             id: frame1
-            visible: false
+            visible: true
 	height: parent.height
             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             Rectangle {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Image {
+                Rectangle {
                     id: f11
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("listen2/Ellipse.svg")
+                    width: 36
+                    radius: 18
+                    height: getLength(sessionData.volume, -2)
+                    color: "#40DBB0"
                 }
             }
             Rectangle {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Image {
+                Rectangle {
                     id: f12
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("listen2/Ellipse.svg")
+                    width: 36
+                    radius: 18
+                    height: getLength(sessionData.volume, -1)
+                    color: "#40DBB0"
                 }
             }
             Rectangle {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Image {
+                Rectangle {
                     id: f13
-                    fillMode: Image.PreserveAspectFit
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    source: Qt.resolvedUrl("listen2/Ellipse.svg")
+                    width: 36
+                    radius: 18
+                    height: getLength(sessionData.volume, 0)
+                    color: "#40DBB0"
                 }
             }
             Rectangle {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Image {
+                Rectangle {
                     id: f14
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("listen2/Ellipse.svg")
+                    width: 36
+                    radius: 18
+                    height: getLength(sessionData.volume, -1)
+                    color: "#40DBB0"
                 }
             }
             Rectangle {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Image {
+                Rectangle {
                     id: f15
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("listen2/Ellipse.svg")
-                }
-            }
-        }
-        RowLayout {
-            id: frame2
-            visible: false
-	    height: parent.height
-            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                Image {
-                    id: f21
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("listen2/Ellipse.svg")
-                }
-            }
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                Image {
-                    id: f22
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("listen2/Rectangle2.svg")
-                }
-            }
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                Image {
-                    id: f23
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("listen2/Rectangle3.svg")
-                }	
-            }
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                Image {
-                    id: f24
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("listen2/Rectangle2.svg")
-                }	
-            }
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                Image {
-                    id: f25
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("listen2/Ellipse.svg")
-                }
-            }
-        }
-        RowLayout {
-            id: frame3
-            visible: false
-	height: parent.height
-            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                Image {
-                    id: f31
-                    fillMode: Image.PreserveAspectFit
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    source: Qt.resolvedUrl("listen3/Rectangle1.svg")
-                }
-            }
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                Image {
-                    id: f32
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("listen3/Rectangle3.svg")
-                }	
-            }
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                Image {
-                    id: f33
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("listen3/Rectangle5.svg")
-                }	
-            }
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                Image {
-                    id: f34
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("listen3/Rectangle3.svg")
-                }
-            }
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                Image {
-                    id: f35
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    fillMode: Image.PreserveAspectFit
-                    source: Qt.resolvedUrl("listen3/Rectangle1.svg")
+                    width: 36
+                    radius: 18
+                    height: getLength(sessionData.volume, -2)
+                    color: "#40DBB0"
                 }
             }
         }
     }
-    // Timed update of which element to show
-    Timer {
-	id: tmr
-	interval: 200
-	running: true
-	repeat: true
-	property int frame: 1
-	onTriggered: frame = Qt.binding(function() {
-            // The frame variable here can be replaced with a volume level
-            // variable.
-            switch (frame) {
-                case 1:
-                    frame1.visible = true;
-                    frame2.visible = false;
-                    frame3.visible = false;
-                    break;
-                case 2:
-                    frame1.visible = false;
-                    frame2.visible = true;
-                    frame3.visible = false;
-                    break;
-                case 3:
-                    frame1.visible = false;
-                    frame2.visible = false;
-                    frame3.visible = true;
-                    break;
-                case 4:
-                    frame1.visible = false;
-                    frame2.visible = true;
-                    frame3.visible = false;
-                    break;
-            }
-            if (frame < 4) {
-                return frame + 1
-            }
-            else
-            {
-                return 1;
-            }
-	});
-    }
-
 }

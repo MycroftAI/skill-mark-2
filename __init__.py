@@ -28,6 +28,71 @@ from mycroft.util.parse import normalize
 from mycroft.audio import wait_while_speaking
 from mycroft import intent_file_handler
 
+import pyaudio
+import struct
+import math
+from threading import Thread
+
+from mycroft import MycroftSkill
+
+FORMAT = pyaudio.paInt16
+SHORT_NORMALIZE = (1.0/32768.0)
+CHANNELS = 2
+RATE = 44100
+INPUT_BLOCK_TIME = 0.05
+INPUT_FRAMES_PER_BLOCK = int(RATE*INPUT_BLOCK_TIME)
+
+def get_rms(block):
+    """ RMS amplitude is defined as the square root of the
+    mean over time of the square of the amplitude.
+     so we need to convert this string of bytes into
+     a string of 16-bit samples...
+    """
+    # we will get one short out for each
+    # two chars in the string.
+    count = len(block) / 2
+    format = "%dh" % (count)
+    shorts = struct.unpack(format, block)
+
+    # iterate over the block.
+    sum_squares = 0.0
+    for sample in shorts:
+        # sample is a signed short in +/- 32768.
+        # normalize it to 1.0
+        n = sample * SHORT_NORMALIZE
+        sum_squares += n * n
+
+    return math.sqrt(sum_squares / count)
+
+
+def find_input_device(pa):
+    """ Find best input device. """
+    device_index = None
+    for i in range( pa.get_device_count()):
+        devinfo = pa.get_device_info_by_index(i)
+        print( "Device %d: %s"%(i,devinfo["name"]))
+
+        for keyword in ["mic","input"]:
+            if keyword in devinfo["name"].lower():
+                print( "Found an input: device %d - %s"%(i,devinfo["name"]))
+                device_index = i
+                return device_index
+
+    if device_index == None:
+        print("No preferred input found; using default input device.")
+
+    return device_index
+
+
+def open_mic_stream(pa):
+    """ Open microphone stream from first best microphone device. """
+    device_index = find_input_device(pa)
+
+    stream = pa.open(format=FORMAT, channels=CHANNELS, rate=RATE,
+                     input=True, input_device_index=device_index,
+                     frames_per_buffer=INPUT_FRAMES_PER_BLOCK)
+
+    return stream
 
 
 class Mark2(MycroftSkill):
@@ -52,11 +117,26 @@ class Mark2(MycroftSkill):
 
         self.has_show_page = False  # resets with each handler
 
+        self.setup_mic_listening()
+
+    def setup_mic_listening(self):
+        """ Initializes PyAudio, starts an input stream and launches the
+            listening thread.
+        """
+        self.pa = pyaudio.PyAudio()
+        self.stream = open_mic_stream(self.pa)
+        self.amplitude = 0
+        self.running = True
+        self.thread = Thread(target=self.listen_thread)
+        self.thread.daemon = True
+        self.thread.start()
+
     def initialize(self):
         # Initialize...
         self.brightness_dict = self.translate_namedvalues('brightness.levels')
         self.color_dict = self.translate_namedvalues('colors')
         self.settings['web eye color'] = self.settings['eye color']
+        self.gui['volume'] = 0
 
         try:
             # Handle changing the eye color once Mark 1 is ready to go
@@ -83,6 +163,10 @@ class Mark2(MycroftSkill):
             self.bus.on('mycroft.skill.handler.complete',
                         self.on_handler_complete)
 
+            self.bus.on('recognizer_loop:sleep',
+                        self.on_handler_sleep)
+            self.bus.on('mycroft.awoken',
+                        self.on_handler_awoken)
             self.bus.on('recognizer_loop:audio_output_start',
                         self.on_handler_interactingwithuser)
             self.bus.on('enclosure.mouth.think',
@@ -110,6 +194,26 @@ class Mark2(MycroftSkill):
             # Connected at startup: setting eye color
             self.enclosure.mouth_reset()
 
+    def listen_thread(self):
+        """ listen on mic input until self.running is False. """
+        while(self.running):
+            self.listen()
+
+    def listen(self):
+        """ Read microphone level and store rms into self.gui['volume']. """
+        try:
+            block = self.stream.read(INPUT_FRAMES_PER_BLOCK)
+        except IOError as e:
+            # damn
+            self.errorcount += 1
+            self.log.error("(%d) Error recording: %s"%(self.errorcount,e))
+            self.noisycount = 1
+            return
+
+        amplitude = int(get_rms(block) * 20)
+        if self.gui['volume'] != amplitude:
+            self.gui['volume'] = amplitude
+
     def shutdown(self):
         # Gotta clean up manually since not using add_event()
         self.bus.remove('mycroft.skill.handler.start',
@@ -118,6 +222,10 @@ class Mark2(MycroftSkill):
                         self.on_handler_complete)
         self.bus.remove('recognizer_loop:audio_output_start',
                         self.on_handler_interactingwithuser)
+        self.bus.remove('recognizer_loop:sleep',
+                        self.on_handler_sleep)
+        self.bus.remove('mycroft.awoken',
+                        self.on_handler_awoken)
         self.bus.remove('enclosure.mouth.think',
                         self.on_handler_interactingwithuser)
         self.bus.remove('enclosure.mouth.events.deactivate',
@@ -127,7 +235,9 @@ class Mark2(MycroftSkill):
         self.bus.remove('enclosure.mouth.viseme',
                         self.on_handler_speaking)
 
-        super().shutdown()
+        self.running = False
+        self.thread.join()
+        self.stream.close()
 
     #####################################################################
     # Manage "busy" visual
@@ -140,7 +250,6 @@ class Mark2(MycroftSkill):
         if "TimeSkill.update_display" in handler:
             return
 
-        self.has_show_page = False
         self.hourglass_info[handler] = self.interaction_id
         # time.sleep(0.25)
         if self.hourglass_info[handler] == self.interaction_id:
@@ -152,7 +261,8 @@ class Mark2(MycroftSkill):
             # self.gui.show_page("thinking.qml")
 
     def on_gui_page_show(self, message):
-        if "Mark2" not in message.data.get("handler", ""):
+#        print('HANDLER', message.data.get("__from", ""))
+        if "mark-2" not in message.data.get("__from", ""):
             # Some skill other than the handler is showing a page
             # TODO: Maybe just check for the "speaking.qml" page?
             self.has_show_page = True
@@ -162,6 +272,14 @@ class Mark2(MycroftSkill):
         # an interaction counter.
         self.interaction_id += 1
 
+    def on_handler_sleep(self, message):
+        """ Show resting face when going to sleep. """
+        self.gui.show_page("resting.qml")
+
+    def on_handler_awoken(self, message):
+        """ Show awake face when sleep ends. """
+        self.gui.show_page("awake.qml")
+
     def on_handler_complete(self, message):
         handler = message.data.get("handler", "")
         # Ignoring handlers from this skill and from the background clock
@@ -169,6 +287,8 @@ class Mark2(MycroftSkill):
             return
         if "TimeSkill.update_display" in handler:
             return
+
+        self.has_show_page = False
 
         try:
             if self.hourglass_info[handler] == -1:
@@ -185,47 +305,45 @@ class Mark2(MycroftSkill):
     # Manage "speaking" visual
 
     def on_handler_speaking(self, message):
+        print(message.data["code"], self.has_show_page)
         if not self.has_show_page:
-            self.gui["viseme"] = message.data["code"]
             self.gui.show_page("speaking.qml")
+        self.gui["viseme"] = message.data["code"]
 
     #####################################################################
     # Manage "idle" visual state
 
     def start_idle_check(self):
         # Clear any existing checker
+        print("!!!!! START IDLE CHECK !!!!!")
         self.cancel_scheduled_event('IdleCheck')
+        self.idle_count = 0
 
-        if self.settings['auto_dim_eyes']:
+        if True:
             # Schedule a check every few seconds
             self.schedule_repeating_event(self.check_for_idle, None,
                                           Mark2.IDLE_CHECK_FREQUENCY,
                                           name='IdleCheck')
 
     def check_for_idle(self):
-        if not self.settings['auto_dim_eyes']:
-            self.cancel_scheduled_event('IdleCheck')
-            return
-
-        if self.enclosure.display_manager.get_active() == '':
+        print('CHECING IDLE')
+        if True:
             # No activity, start to fall asleep
             self.idle_count += 1
 
-            if self.idle_count == 2:
+            if self.idle_count == 5:
                 # Go into a 'sleep' visual state
-                self.gui.show_page("idle.qml")
-            elif self.idle_count > 2:
+                print("TRIGGERED!")
+                self.bus.emit(Message('mycroft-date-time.mycroftai.idle'))
+            elif self.idle_count > 5:
                 self.cancel_scheduled_event('IdleCheck')
 
-                # Go into an 'inattentive' visual state
-                self.gui.show_page("resting.qml")
-        else:
-            self.idle_count = 0
 
     def handle_listener_started(self, message):
-        if not self.settings['auto_dim_eyes']: 
+        if False:
             self.cancel_scheduled_event('IdleCheck')
         else:
+            print("IDLE CHECK!")
             # Check if in 'idle' state and visually come to attention
             if self.idle_count > 2:
                 # Perform 'waking' animation
