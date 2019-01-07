@@ -5,7 +5,7 @@ import org.kde.kirigami 2.4 as Kirigami
 
 import Mycroft 1.0 as Mycroft
 
-Mycroft.Delegate {
+Item {
     function getLength(volume, pos) {
         var val = (volume * 2 + pos);
         if (val < 0)
@@ -16,7 +16,6 @@ Mycroft.Delegate {
         return 36 + 36 * val;
     }
 
-    skillBackgroundSource: Qt.resolvedUrl('bg.png')
     ColumnLayout {
         id: grid
         width: parent.width

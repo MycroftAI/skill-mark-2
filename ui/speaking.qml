@@ -5,13 +5,12 @@ import org.kde.kirigami 2.4 as Kirigami
 
 import Mycroft 1.0 as Mycroft
 
-Mycroft.Delegate {
+Item {
     function getVisemeImg(viseme){
         console.log(viseme)
         return "face/" + viseme + ".svg"
     }
 
-    skillBackgroundSource: Qt.resolvedUrl('bg.png')
     Item {
         id: top_spacing
         anchors.top: parent.top

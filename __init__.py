@@ -274,11 +274,13 @@ class Mark2(MycroftSkill):
 
     def on_handler_sleep(self, message):
         """ Show resting face when going to sleep. """
-        self.gui.show_page("resting.qml")
+        self.gui['state'] = 'resting'
+        self.gui.show_page("all.qml")
 
     def on_handler_awoken(self, message):
         """ Show awake face when sleep ends. """
-        self.gui.show_page("awake.qml")
+        self.gui['state'] = 'awake'
+        self.gui.show_page("all.qml")
 
     def on_handler_complete(self, message):
         handler = message.data.get("handler", "")
@@ -307,7 +309,8 @@ class Mark2(MycroftSkill):
     def on_handler_speaking(self, message):
         print(message.data["code"], self.has_show_page)
         if not self.has_show_page:
-            self.gui.show_page("speaking.qml")
+            self.gui['state'] = 'speaking'
+            self.gui.show_page("all.qml")
         self.gui["viseme"] = message.data["code"]
 
     #####################################################################
@@ -338,7 +341,6 @@ class Mark2(MycroftSkill):
             elif self.idle_count > 5:
                 self.cancel_scheduled_event('IdleCheck')
 
-
     def handle_listener_started(self, message):
         if False:
             self.cancel_scheduled_event('IdleCheck')
@@ -353,10 +355,12 @@ class Mark2(MycroftSkill):
                 self.idle_count = 0
                 self.start_idle_check()
 
-        self.gui.show_page("listening.qml")
+        self.gui['state'] = 'listening'
+        self.gui.show_page('all.qml')
 
     def handle_listener_ended(self, message):
-        self.gui.show_page("thinking.qml")
+        self.gui['state'] = 'thinking'
+        self.gui.show_page('all.qml')
 
     def handle_failed_stt(self, message):
         # No discernable words were transcribed
