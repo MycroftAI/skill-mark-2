@@ -308,7 +308,7 @@ class Mark2(MycroftSkill):
 
     def on_handler_speaking(self, message):
         print(message.data["code"], self.has_show_page)
-        if not self.has_show_page:
+        if not self.has_show_page and self.gui['state'] != 'speaking':
             self.gui['state'] = 'speaking'
             self.gui.show_page("all.qml")
         self.gui["viseme"] = message.data["code"]
