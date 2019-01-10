@@ -10,8 +10,8 @@ Item {
         var val = (volume * 2 + pos);
         if (val < 0)
             val = 0;
-        else if (val > 6)
-        val = 6;
+        else if (val > 10)
+        val = 10;
         console.log(val)
         return 36 + 36 * val;
     }
