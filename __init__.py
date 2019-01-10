@@ -15,10 +15,8 @@
 import astral
 import time
 import arrow
-from difflib import SequenceMatcher
-from ast import literal_eval as parse_tuple
 from pytz import timezone
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from mycroft.messagebus.message import Message
 from mycroft.skills.core import MycroftSkill
@@ -32,8 +30,6 @@ import pyaudio
 import struct
 import math
 from threading import Thread
-
-from mycroft import MycroftSkill
 
 FORMAT = pyaudio.paInt16
 SHORT_NORMALIZE = (1.0/32768.0)
@@ -84,9 +80,6 @@ class Mark2(MycroftSkill):
     def __init__(self):
         super().__init__("Mark2")
 
-        self.should_converse = False
-        self._settings_loaded = False
-        self.converse_context = None
         self.idle_count = 99
         self.hourglass_info = {}
         self.interaction_id = 0
