@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 
 from mycroft.messagebus.message import Message
 from mycroft.skills.core import MycroftSkill
-from mycroft.util import connected
+from mycroft.util import connected, find_input_device
 from mycroft.util.log import LOG
 from mycroft.util.parse import normalize
 from mycroft.audio import wait_while_speaking
@@ -65,28 +65,10 @@ def get_rms(block):
     return math.sqrt(sum_squares / count)
 
 
-def find_input_device(pa):
-    """ Find best input device. """
-    device_index = None
-    for i in range( pa.get_device_count()):
-        devinfo = pa.get_device_info_by_index(i)
-        print( "Device %d: %s"%(i,devinfo["name"]))
-
-        for keyword in ["mic","input"]:
-            if keyword in devinfo["name"].lower():
-                print( "Found an input: device %d - %s"%(i,devinfo["name"]))
-                device_index = i
-                return device_index
-
-    if device_index == None:
-        print("No preferred input found; using default input device.")
-
-    return device_index
-
-
-def open_mic_stream(pa):
+def open_mic_stream(pa, device_index, device_name):
     """ Open microphone stream from first best microphone device. """
-    device_index = find_input_device(pa)
+    if not device_index and device_name:
+        device_index = find_input_device(device_name)
 
     stream = pa.open(format=FORMAT, channels=CHANNELS, rate=RATE,
                      input=True, input_device_index=device_index,
@@ -124,7 +106,10 @@ class Mark2(MycroftSkill):
             listening thread.
         """
         self.pa = pyaudio.PyAudio()
-        self.stream = open_mic_stream(self.pa)
+        listener_conf = self.config_core['listener']
+        self.stream = open_mic_stream(self.pa,
+                                      listener_conf.get('device_index'),
+                                      listener_conf.get('device_name'))
         self.amplitude = 0
         self.running = True
         self.thread = Thread(target=self.listen_thread)
