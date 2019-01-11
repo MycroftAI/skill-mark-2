@@ -20,11 +20,13 @@ from datetime import datetime
 
 from mycroft.messagebus.message import Message
 from mycroft.skills.core import MycroftSkill
-from mycroft.util import connected, find_input_device
+from mycroft.util import connected, find_input_device, get_ipc_directory
 from mycroft.util.log import LOG
 from mycroft.util.parse import normalize
 from mycroft.audio import wait_while_speaking
 from mycroft import intent_file_handler
+
+import os
 
 import pyaudio
 import struct
@@ -73,6 +75,24 @@ def open_mic_stream(pa, device_index, device_name):
     return stream
 
 
+def read_file_from(filename, bytefrom):
+    """ Read listener level from offset. """
+    with open(filename, 'r') as fh:
+        meter_cur = None
+        fh.seek(bytefrom)
+        while True:
+            line = fh.readline()
+            if line == "":
+                break
+
+            # Just adjust meter settings
+            # Ex:Energy:  cur=4 thresh=1.5
+            parts = line.split("=")
+            meter_thresh = float(parts[-1])
+            meter_cur = float(parts[-2].split(" ")[0])
+        return meter_cur
+
+
 class Mark2(MycroftSkill):
 
     IDLE_CHECK_FREQUENCY = 6  # in seconds
@@ -93,6 +113,9 @@ class Mark2(MycroftSkill):
         self.has_show_page = False  # resets with each handler
 
         self.setup_mic_listening()
+        self.listener_file = os.path.join(get_ipc_directory(), "mic_level")
+        self.st_results = os.stat(self.listener_file)
+        self.max_amplitude = 0
 
     def setup_mic_listening(self):
         """ Initializes PyAudio, starts an input stream and launches the
@@ -104,10 +127,6 @@ class Mark2(MycroftSkill):
                                       listener_conf.get('device_index'),
                                       listener_conf.get('device_name'))
         self.amplitude = 0
-        self.running = True
-        self.thread = Thread(target=self.listen_thread)
-        self.thread.daemon = True
-        self.thread.start()
 
     def initialize(self):
         # Initialize...
@@ -115,6 +134,12 @@ class Mark2(MycroftSkill):
         self.color_dict = self.translate_namedvalues('colors')
         self.settings['web eye color'] = self.settings['eye color']
         self.gui['volume'] = 0
+
+        # Start listening thread
+        self.running = True
+        self.thread = Thread(target=self.listen_thread)
+        self.thread.daemon = True
+        self.thread.start()
 
         try:
             # Handle changing the eye color once Mark 1 is ready to go
@@ -176,9 +201,10 @@ class Mark2(MycroftSkill):
         """ listen on mic input until self.running is False. """
         while(self.running):
             self.listen()
+            time.sleep(0.05)
 
-    def listen(self):
-        """ Read microphone level and store rms into self.gui['volume']. """
+    def get_audio_level(self):
+        """ Get level directly from audio device. """
         try:
             block = self.stream.read(INPUT_FRAMES_PER_BLOCK)
         except IOError as e:
@@ -186,10 +212,37 @@ class Mark2(MycroftSkill):
             self.errorcount += 1
             self.log.error("(%d) Error recording: %s"%(self.errorcount,e))
             self.noisycount = 1
-            return
+            return None
 
-        amplitude = int(get_rms(block) * 20)
-        if self.gui['volume'] != amplitude:
+        return int(get_rms(block) * 20)
+
+    def get_listener_level(self):
+        """ Get level from IPC file created by listener. """
+        try:
+            st_results = os.stat(self.listener_file)
+
+            if (not st_results.st_ctime == self.st_results.st_ctime or
+                    not st_results.st_mtime == self.st_results.st_mtime):
+                ret = read_file_from(self.listener_file, 0)
+                self.st_results = st_results
+                if ret is not None:
+                    if ret > self.max_amplitude:
+                        self.max_amplitude = ret
+                    ret = int(ret / self.max_amplitude * 10)
+                return ret
+        except Exception as e:
+            self.log.error(repr(e))
+        return None
+
+        
+    def listen(self):
+        """ Read microphone level and store rms into self.gui['volume']. """
+        #amplitude = self.get_audio_level()
+        amplitude = self.get_listener_level()
+
+        if (self.gui and ('volume' not in self.gui
+                     or self.gui['volume'] != amplitude) and
+                 amplitude is not None):
             self.gui['volume'] = amplitude
 
     def shutdown(self):
