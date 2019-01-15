@@ -101,6 +101,8 @@ class Mark2(MycroftSkill):
         super().__init__("Mark2")
 
         self.idle_count = 99
+        self.idle_screens = {}
+
         self.hourglass_info = {}
         self.interaction_id = 0
 
@@ -182,6 +184,8 @@ class Mark2(MycroftSkill):
             self.bus.on('gui.page_interaction', self.on_gui_page_interaction)
 
             self.bus.on('mycroft.skills.initialized', self.reset_face)
+            self.bus.on('mycroft.mark2.register_idle',
+                        self.on_register_idle)
             
             # Handle device settings events
             self.add_event('mycroft.device.settings', 
@@ -203,6 +207,8 @@ class Mark2(MycroftSkill):
             self.gui.register_handler('mycroft.device.settings.poweroff', 
                             self.handle_device_poweroff_action)
 
+            # Collect Idle screens
+            self.bus.emit(Message('mycroft.mark2.collect_idle'))
         except Exception:
             LOG.exception('In Mark 1 Skill')
 
@@ -210,6 +216,13 @@ class Mark2(MycroftSkill):
         self._sync_wake_beep_setting()
 
         self.settings.set_changed_callback(self.on_websettings_changed)
+
+    def on_register_idle(self, message):
+        if 'name' in message.data and 'id' in message.data:
+            self.idle_screens[message.data['name']] = message.data['id']
+            self.log.info('Registered {}'.format(message.data['name']))
+        else:
+            self.log.error('Malformed idle screen registration received')
 
     def reset_face(self, message):
         if connected():
@@ -406,8 +419,12 @@ class Mark2(MycroftSkill):
 
     def show_idle_screen(self):
         print("SHOWING IDLE SCREEN!")
-        self.bus.emit(Message('mycroft-date-time.mycroftai.idle'))
-
+        if len(self.idle_screens) > 0:
+            screen = self.idle_screens.get('Time and Date')
+        else:
+            screen = None
+        if screen:
+            self.bus.emit(Message('{}.idle'.format(screen)))
 
     def handle_listener_started(self, message):
         if False:
