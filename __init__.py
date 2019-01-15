@@ -186,6 +186,7 @@ class Mark2(MycroftSkill):
                         self.on_handler_speaking)
             self.bus.on('gui.page.show',
                         self.on_gui_page_show)
+            self.bus.on('gui.page_interaction', self.on_gui_page_interaction)
 
             self.bus.on('mycroft.skills.initialized', self.reset_face)
             
@@ -294,6 +295,7 @@ class Mark2(MycroftSkill):
                         self.on_handler_interactingwithuser)
         self.bus.remove('enclosure.mouth.viseme',
                         self.on_handler_speaking)
+        self.bus.remove('gui.page_interaction', self.on_gui_page_interaction)
 
         self.running = False
         self.thread.join()
@@ -319,6 +321,9 @@ class Mark2(MycroftSkill):
             # SSP: No longer need this logic since we show "thinking.qml"
             #      immediately after the record_end?
             # self.gui.show_page("thinking.qml")
+
+    def on_gui_page_interaction(self, message):
+        self.idle_count = 0
 
     def on_gui_page_show(self, message):
         print('HANDLER', message.data)
