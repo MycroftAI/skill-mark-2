@@ -174,6 +174,10 @@ class Mark2(MycroftSkill):
                         self.on_handler_interactingwithuser)
             self.bus.on('enclosure.mouth.think',
                         self.on_handler_interactingwithuser)
+            self.bus.on('enclosure.mouth.reset',
+                        self.on_handler_mouth_reset)
+            self.bus.on('recognizer_loop:audio_output_end',
+                        self.on_handler_mouth_reset)
             self.bus.on('enclosure.mouth.events.deactivate',
                         self.on_handler_interactingwithuser)
             self.bus.on('enclosure.mouth.text',
@@ -280,6 +284,10 @@ class Mark2(MycroftSkill):
                         self.on_handler_awoken)
         self.bus.remove('enclosure.mouth.think',
                         self.on_handler_interactingwithuser)
+        self.bus.remove('enclosure.mouth.reset',
+                        self.on_handler_mouth_reset)
+        self.bus.remove('recognizer_loop:audio_output_end',
+                        self.on_handler_mouth_reset)
         self.bus.remove('enclosure.mouth.events.deactivate',
                         self.on_handler_interactingwithuser)
         self.bus.remove('enclosure.mouth.text',
@@ -322,6 +330,10 @@ class Mark2(MycroftSkill):
             if override_idle is not None:
                 print("CANCELING IDLE")
                 self.cancel_scheduled_event('IdleCheck')
+
+    def on_handler_mouth_reset(self, message):
+        """ Restore viseme to a smile. """
+        self.gui['viseme'] = 'smile'
 
     def on_handler_interactingwithuser(self, message):
         # Every time we do something that the user would notice, increment
