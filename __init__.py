@@ -222,7 +222,6 @@ class Mark2(MycroftSkill):
         """ listen on mic input until self.running is False. """
         while(self.running):
             self.listen()
-            time.sleep(0.05)
 
     def get_audio_level(self):
         """ Get level directly from audio device. """
@@ -239,6 +238,7 @@ class Mark2(MycroftSkill):
 
     def get_listener_level(self):
         """ Get level from IPC file created by listener. """
+        time.sleep(0.05)
         try:
             st_results = os.stat(self.listener_file)
 
