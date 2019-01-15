@@ -107,11 +107,10 @@ class Mark2(MycroftSkill):
         self.settings['auto_brightness'] = False
         self.settings['auto_dim_eyes'] = True
         self.settings['use_listening_beep'] = True
-        self.settings['eye color'] = "default"
-        self.settings['current_eye_color'] = self.settings['eye color']
 
         self.has_show_page = False  # resets with each handler
 
+        # Volume indicatior
         self.setup_mic_listening()
         self.listener_file = os.path.join(get_ipc_directory(), "mic_level")
         self.st_results = os.stat(self.listener_file)
@@ -132,7 +131,6 @@ class Mark2(MycroftSkill):
         # Initialize...
         self.brightness_dict = self.translate_namedvalues('brightness.levels')
         self.color_dict = self.translate_namedvalues('colors')
-        self.settings['web eye color'] = self.settings['eye color']
         self.gui['volume'] = 0
 
         # Start listening thread
@@ -142,13 +140,8 @@ class Mark2(MycroftSkill):
         self.thread.start()
 
         try:
-            # Handle changing the eye color once Mark 1 is ready to go
-            # (Part of the statup sequence)
             self.add_event('mycroft.internet.connected',
                            self.handle_internet_connected)
-
-            self.add_event('mycroft.eyes.default',
-                           self.handle_default_eyes)
 
             # Handle the 'waking' visual
             self.add_event('recognizer_loop:record_begin',
@@ -220,8 +213,7 @@ class Mark2(MycroftSkill):
 
     def reset_face(self, message):
         if connected():
-            # Connected at startup: setting eye color
-            self.enclosure.mouth_reset()
+            self.show_idle_screen()
 
     def listen_thread(self):
         """ listen on mic input until self.running is False. """
@@ -260,7 +252,6 @@ class Mark2(MycroftSkill):
             self.log.error(repr(e))
         return None
 
-        
     def listen(self):
         """ Read microphone level and store rms into self.gui['volume']. """
         #amplitude = self.get_audio_level()
@@ -409,10 +400,14 @@ class Mark2(MycroftSkill):
 
             if self.idle_count == 5:
                 # Go into a 'sleep' visual state
-                print("TRIGGERED!")
-                self.bus.emit(Message('mycroft-date-time.mycroftai.idle'))
+                self.show_idle_screen()
             elif self.idle_count > 5:
                 self.cancel_scheduled_event('IdleCheck')
+
+    def show_idle_screen(self):
+        print("SHOWING IDLE SCREEN!")
+        self.bus.emit(Message('mycroft-date-time.mycroftai.idle'))
+
 
     def handle_listener_started(self, message):
         if False:
@@ -437,7 +432,7 @@ class Mark2(MycroftSkill):
 
     def handle_failed_stt(self, message):
         # No discernable words were transcribed
-        self.gui.show_page("idle.qml")
+        pass
 
     #####################################################################
     # Manage network connction feedback
@@ -445,12 +440,6 @@ class Mark2(MycroftSkill):
     def handle_internet_connected(self, message):
         # System came online later after booting
         self.enclosure.mouth_reset()
-
-    #####################################################################
-    # Reset eye appearance
-
-    def handle_default_eyes(self, message):
-        pass # self.set_eye_color(self.settings['current_eye_color'], speak=False)
 
     #####################################################################
     # Web settings
