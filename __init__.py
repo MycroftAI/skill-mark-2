@@ -184,6 +184,27 @@ class Mark2(MycroftSkill):
                         self.on_gui_page_show)
 
             self.bus.on('mycroft.skills.initialized', self.reset_face)
+            
+            # Handle device settings events
+            self.add_event('mycroft.device.settings', 
+                           self.handle_device_settings) #Use Legacy for QuickSetting delegate
+            self.gui.register_handler('mycroft.device.settings', 
+                                      self.handle_device_settings)
+            self.gui.register_handler('mycroft.device.settings.brightness', 
+                                      self.handle_device_brightness_settings)
+            self.gui.register_handler('mycroft.device.settings.homescreen', 
+                                      self.handle_device_homescreen_settings)
+            self.gui.register_handler('mycroft.device.settings.ssh', 
+                                      self.handle_device_ssh_settings)
+            self.gui.register_handler('mycroft.device.settings.reset', 
+                                      self.handle_device_factory_reset_settings)
+            self.gui.register_handler('mycroft.device.settings.update', 
+                                      self.handle_device_update_settings)
+            self.gui.register_handler('mycroft.device.settings.restart', 
+                                      self.handle_device_restart_action)
+            self.gui.register_handler('mycroft.device.settings.poweroff', 
+                            self.handle_device_poweroff_action)
+
         except Exception:
             LOG.exception('In Mark 1 Skill')
 
@@ -635,6 +656,68 @@ class Mark2(MycroftSkill):
             self.set_eye_brightness(level, speak=False)
             pair = self._get_auto_time()[time_of_day]
             self.schedule_brightness(time_of_day, pair)
+
+    #####################################################################
+    # Device Settings
+    
+    @intent_file_handler('device.settings.intent')
+    def handle_device_settings(self, message):
+        """ 
+            display device settings page
+        """
+        self.gui['state'] = 'settings/settingspage'
+        self.gui.show_page('all.qml')
+    
+    @intent_file_handler('device.brightness.settings.intent')
+    def handle_device_brightness_settings(self, message):
+        """
+            display brightness settings page
+        """
+        self.gui['state'] = 'settings/brightness_settings'
+        self.gui.show_page('all.qml')
+        
+    @intent_file_handler('device.homescreen.settings.intent')
+    def handle_device_homescreen_settings(self, message):
+        """
+            display homescreen settings page
+        """
+        self.gui['state'] = 'settings/homescreen_settings'
+        self.gui.show_page('all.qml')
+        
+    @intent_file_handler('device.ssh.settings.intent')
+    def handle_device_ssh_settings(self, message):
+        """
+            display ssh settings page
+        """
+        self.gui['state'] = 'settings/ssh_settings'
+        self.gui.show_page('all.qml')
+
+    @intent_file_handler('device.reset.settings.intent')
+    def handle_device_factory_reset_settings(self, message):
+        """
+            display device factory reset settings page
+        """
+        self.gui['state'] = 'settings/factoryreset_settings'
+        self.gui.show_page('all.qml')
+        
+    def handle_device_update_settings(self, message):
+        """
+            display device update settings page
+        """
+        self.gui['state'] = 'settings/updatedevice_settings'
+        self.gui.show_page('all.qml')
+        
+    def handle_device_restart_action(self, message):
+        """
+            device restart action
+        """
+        print("PlaceholderRestartAction")
+
+    def handle_device_poweroff_action(self, message):
+        """
+            device poweroff action
+        """
+        print("PlaceholderShutdownAction")
 
 
 def create_skill():
