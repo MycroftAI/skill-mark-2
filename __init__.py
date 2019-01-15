@@ -313,11 +313,15 @@ class Mark2(MycroftSkill):
             # self.gui.show_page("thinking.qml")
 
     def on_gui_page_show(self, message):
-#        print('HANDLER', message.data.get("__from", ""))
+        print('HANDLER', message.data)
         if "mark-2" not in message.data.get("__from", ""):
             # Some skill other than the handler is showing a page
             # TODO: Maybe just check for the "speaking.qml" page?
             self.has_show_page = True
+            override_idle = message.data.get('__idle')
+            if override_idle is not None:
+                print("CANCELING IDLE")
+                self.cancel_scheduled_event('IdleCheck')
 
     def on_handler_interactingwithuser(self, message):
         # Every time we do something that the user would notice, increment
