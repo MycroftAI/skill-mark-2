@@ -300,6 +300,7 @@ class Mark2(MycroftSkill):
         self.bus.remove('enclosure.mouth.viseme',
                         self.on_handler_speaking)
         self.bus.remove('gui.page_interaction', self.on_gui_page_interaction)
+        self.bus.remove('mycroft.mark2.register_idle', self.on_register_idle)
 
         self.running = False
         self.thread.join()
