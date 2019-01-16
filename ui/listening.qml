@@ -18,12 +18,11 @@ Item {
     }
 
     function getLength(volume, pos) {
-        var val = (volume * 2 + pos);
+        var val = (volume * 2) + (pos * 2);
         if (val < 0)
             val = 0;
         else if (val > 10)
-        val = 10;
-        console.log(val)
+            val = 10;
         return 36 + 36 * val;
     }
 
