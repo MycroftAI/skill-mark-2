@@ -244,7 +244,10 @@ class Mark2(MycroftSkill):
             self.noisycount = 1
             return None
 
-        return int(get_rms(block) * 20)
+        amplitude = get_rms(block)
+        if amplitude > self.max_amplitude:
+            self.max_amplitude = amplitude
+        return int(amplitude / self.max_amplitude * 10)
 
     def get_listener_level(self):
         """ Get level from IPC file created by listener. """
