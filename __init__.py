@@ -346,7 +346,7 @@ class Mark2(MycroftSkill):
 
     def on_handler_mouth_reset(self, message):
         """ Restore viseme to a smile. """
-        self.gui['viseme'] = 'smile'
+        self.gui['viseme'] = 'Smile'
 
     def on_handler_interactingwithuser(self, message):
         # Every time we do something that the user would notice, increment
