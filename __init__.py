@@ -102,6 +102,7 @@ class Mark2(MycroftSkill):
 
         self.idle_count = 99
         self.idle_screens = {}
+        self.override_idle = None
 
         self.hourglass_info = {}
         self.interaction_id = 0
@@ -278,6 +279,14 @@ class Mark2(MycroftSkill):
                  amplitude is not None):
             self.gui['volume'] = amplitude
 
+    def stop(self, message=None):
+        """ Clear override_idle. """
+        if (self.override_idle and
+                time.monotonic() - self.override_idle[1] > 2):
+            log.info("CLEARING OVERRIDE IDLE")
+            self.override_idle = None
+        return False
+
     def shutdown(self):
         # Gotta clean up manually since not using add_event()
         self.bus.remove('mycroft.skill.handler.start',
@@ -344,7 +353,7 @@ class Mark2(MycroftSkill):
                 self.log.debug("cancelling idle")
                 self.cancel_scheduled_event('IdleCheck')
                 self.idle_count = 0
-                # TODO: after interactions return to the override page
+                self.override_idle = (message, time.monotonic())
 
     def on_handler_mouth_reset(self, message):
         """ Restore viseme to a smile. """
@@ -420,13 +429,18 @@ class Mark2(MycroftSkill):
             self.cancel_scheduled_event('IdleCheck')
 
     def show_idle_screen(self):
-        if len(self.idle_screens) > 0:
+        """ Show the idle screen or return to the skill that's overriding idle.
+        """
+        screen = None
+        if self.override_idle:
+            self.log.debug("Returning to override")
+            # Restore the page overriding idle instead of the normal idle
+            self.bus.emit(self.override_idle[0])
+        elif len(self.idle_screens) > 0:
             # TODO remove hard coded value
             idle_screen = 'Time and Date'  # TODO: un-hard-code
-            self.log.info('Showing Idle screen for {}'.format(idle_screen))
+            self.log.debug('Showing Idle screen for {}'.format(idle_screen))
             screen = self.idle_screens.get(idle_screen)
-        else:
-            screen = None
         if screen:
             self.bus.emit(Message('{}.idle'.format(screen)))
 
