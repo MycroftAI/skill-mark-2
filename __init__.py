@@ -334,23 +334,26 @@ class Mark2(MycroftSkill):
         self.idle_count = 0
 
     def on_gui_page_show(self, message):
-        print('HANDLER', message.data)
         if "mark-2" not in message.data.get("__from", ""):
             # Some skill other than the handler is showing a page
-            # TODO: Maybe just check for the "speaking.qml" page?
             self.has_show_page = True
+
+            # If a skill overrides the idle do not switch page
             override_idle = message.data.get('__idle')
             if override_idle is not None:
-                print("CANCELING IDLE")
+                self.log.debug("cancelling idle")
                 self.cancel_scheduled_event('IdleCheck')
+                self.idle_count = 0
+                # TODO: after interactions return to the override page
 
     def on_handler_mouth_reset(self, message):
         """ Restore viseme to a smile. """
         self.gui['viseme'] = 'Smile'
 
     def on_handler_interactingwithuser(self, message):
-        # Every time we do something that the user would notice, increment
-        # an interaction counter.
+        """ Every time we do something that the user would notice,
+            increment an interaction counter.
+        """
         self.interaction_id += 1
 
     def on_handler_sleep(self, message):
@@ -388,7 +391,6 @@ class Mark2(MycroftSkill):
     # Manage "speaking" visual
 
     def on_handler_speaking(self, message):
-        print(message.data["code"], self.has_show_page)
         if not self.has_show_page and self.gui['state'] != 'speaking':
             self.gui['state'] = 'speaking'
             self.gui.show_page("all.qml")
@@ -399,55 +401,49 @@ class Mark2(MycroftSkill):
 
     def start_idle_check(self):
         # Clear any existing checker
-        print("!!!!! START IDLE CHECK !!!!!")
         self.cancel_scheduled_event('IdleCheck')
         self.idle_count = 0
 
-        if True:
-            # Schedule a check every few seconds
-            self.schedule_repeating_event(self.check_for_idle, None,
-                                          Mark2.IDLE_CHECK_FREQUENCY,
-                                          name='IdleCheck')
+        # Schedule a check every few seconds
+        self.schedule_repeating_event(self.check_for_idle, None,
+                                      Mark2.IDLE_CHECK_FREQUENCY,
+                                      name='IdleCheck')
 
     def check_for_idle(self):
-        print('CHECING IDLE')
-        if True:
-            # No activity, start to fall asleep
-            self.idle_count += 1
+        # No activity, start to fall asleep
+        self.idle_count += 1
 
-            if self.idle_count == 5:
-                # Go into a 'sleep' visual state
-                self.show_idle_screen()
-            elif self.idle_count > 5:
-                self.cancel_scheduled_event('IdleCheck')
+        if self.idle_count == 5:
+            # Go into a 'sleep' visual state
+            self.show_idle_screen()
+        elif self.idle_count > 5:
+            self.cancel_scheduled_event('IdleCheck')
 
     def show_idle_screen(self):
-        print("SHOWING IDLE SCREEN!")
         if len(self.idle_screens) > 0:
-            screen = self.idle_screens.get('Time and Date')
+            # TODO remove hard coded value
+            idle_screen = 'Time and Date'  # TODO: un-hard-code
+            self.log.info('Showing Idle screen for {}'.format(idle_screen))
+            screen = self.idle_screens.get(idle_screen)
         else:
             screen = None
         if screen:
             self.bus.emit(Message('{}.idle'.format(screen)))
 
     def handle_listener_started(self, message):
-        if False:
-            self.cancel_scheduled_event('IdleCheck')
-        else:
-            print("IDLE CHECK!")
-            # Check if in 'idle' state and visually come to attention
-            if self.idle_count > 2:
-                # Perform 'waking' animation
-                # TODO: Anything in QML?  E.g. self.gui.show_page("waking.qml")
+        """ Shows listener page after wakeword is triggered.
 
-                # Begin checking for the idle state again
-                self.idle_count = 0
-                self.start_idle_check()
+            Starts countdown to show the idle page.
+        """
+        # Start idle timer
+        self.start_idle_check()
 
+        # Show listening page
         self.gui['state'] = 'listening'
         self.gui.show_page('all.qml')
 
     def handle_listener_ended(self, message):
+        """ When listening has ended show the thinking animation. """
         self.gui['state'] = 'thinking'
         self.gui.show_page('all.qml')
 
@@ -742,13 +738,13 @@ class Mark2(MycroftSkill):
         """
             device restart action
         """
-        print("PlaceholderRestartAction")
+        self.log.info("PlaceholderRestartAction")
 
     def handle_device_poweroff_action(self, message):
         """
             device poweroff action
         """
-        print("PlaceholderShutdownAction")
+        self.log.info("PlaceholderShutdownAction")
 
 
 def create_skill():
