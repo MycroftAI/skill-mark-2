@@ -25,6 +25,50 @@ Item {
             val = 10;
         return 36 + 36 * val;
     }
+    property var volume: sessionData.volume
+
+    onVolumeChanged: {
+        af11.running = true
+        af12.running = true
+        af13.running = true
+        af14.running = true
+        af15.running = true
+    }
+    PropertyAnimation {
+        id: af11
+        target: f11
+        property: "height"
+        to: getLength(sessionData.volume, -2)
+        duration: 50
+    }
+    PropertyAnimation {
+        id: af12
+        target: f12
+        property: "height"
+        to: getLength(sessionData.volume, -1)
+        duration: 50
+    }
+    PropertyAnimation {
+        id: af13
+        target: f13
+        property: "height"
+        to: getLength(sessionData.volume, 0)
+        duration: 50
+    }
+    PropertyAnimation {
+        id: af14
+        target: f14
+        property: "height"
+        to: getLength(sessionData.volume, -1)
+        duration: 50
+    }
+    PropertyAnimation {
+        id: af15
+        target: f15
+        property: "height"
+        to: getLength(sessionData.volume, -2)
+        duration: 50
+    }
 
     ColumnLayout {
         id: grid
@@ -44,75 +88,45 @@ Item {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Rectangle {
+                VolumeBar {
                     id: f11
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 36
-                    radius: 18
                     opacity: getOpacity(sessionData.volume)
-                    height: getLength(sessionData.volume, -2)
-                    color: "#40DBB0"
                 }
             }
             Rectangle {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Rectangle {
+                VolumeBar {
                     id: f12
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 36
-                    radius: 18
                     opacity: getOpacity(sessionData.volume)
-                    height: getLength(sessionData.volume, -1)
-                    color: "#40DBB0"
                 }
             }
             Rectangle {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Rectangle {
+                VolumeBar {
                     id: f13
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 36
-                    radius: 18
                     opacity: getOpacity(sessionData.volume)
-                    height: getLength(sessionData.volume, 0)
-                    color: "#40DBB0"
                 }
             }
             Rectangle {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Rectangle {
+                VolumeBar {
                     id: f14
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 36
-                    radius: 18
                     opacity: getOpacity(sessionData.volume)
-                    height: getLength(sessionData.volume, -1)
-                    color: "#40DBB0"
                 }
             }
             Rectangle {
                 height: 600
                 width: 60
                 color: "#00000000"
-                Rectangle {
+                VolumeBar {
                     id: f15
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 36
-                    radius: 18
                     opacity: getOpacity(sessionData.volume)
-                    height: getLength(sessionData.volume, -2)
-                    color: "#40DBB0"
                 }
             }
         }
