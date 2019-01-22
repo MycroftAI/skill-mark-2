@@ -18,11 +18,11 @@ Item {
     }
 
     function getLength(volume, pos) {
-        var val = (volume * 2) + (pos * 2);
+        var val = (volume * 2) * pos;
         if (val < 0)
             val = 0;
-        else if (val > 10)
-            val = 10;
+        else if (val > 15)
+            val = 15;
         return 36 + 36 * val;
     }
     property var volume: sessionData.volume
@@ -38,35 +38,35 @@ Item {
         id: af11
         target: f11
         property: "height"
-        to: getLength(sessionData.volume, -2)
+        to: getLength(sessionData.volume, (0.5))
         duration: 50
     }
     PropertyAnimation {
         id: af12
         target: f12
         property: "height"
-        to: getLength(sessionData.volume, -1)
+        to: getLength(sessionData.volume, 0.75)
         duration: 50
     }
     PropertyAnimation {
         id: af13
         target: f13
         property: "height"
-        to: getLength(sessionData.volume, 0)
+        to: getLength(sessionData.volume, 1)
         duration: 50
     }
     PropertyAnimation {
         id: af14
         target: f14
         property: "height"
-        to: getLength(sessionData.volume, -1)
+        to: getLength(sessionData.volume, 0.75)
         duration: 50
     }
     PropertyAnimation {
         id: af15
         target: f15
         property: "height"
-        to: getLength(sessionData.volume, -2)
+        to: getLength(sessionData.volume, 0.5)
         duration: 50
     }
 
