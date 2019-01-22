@@ -178,7 +178,7 @@ class Mark2(MycroftSkill):
                         self.on_handler_interactingwithuser)
             self.bus.on('enclosure.mouth.text',
                         self.on_handler_interactingwithuser)
-            self.bus.on('enclosure.mouth.viseme',
+            self.bus.on('enclosure.mouth.viseme_list',
                         self.on_handler_speaking)
             self.bus.on('gui.page.show',
                         self.on_gui_page_show)
@@ -309,7 +309,7 @@ class Mark2(MycroftSkill):
                         self.on_handler_interactingwithuser)
         self.bus.remove('enclosure.mouth.text',
                         self.on_handler_interactingwithuser)
-        self.bus.remove('enclosure.mouth.viseme',
+        self.bus.remove('enclosure.mouth.viseme_list',
                         self.on_handler_speaking)
         self.bus.remove('gui.page_interaction', self.on_gui_page_interaction)
         self.bus.remove('mycroft.mark2.register_idle', self.on_register_idle)
@@ -357,7 +357,7 @@ class Mark2(MycroftSkill):
 
     def on_handler_mouth_reset(self, message):
         """ Restore viseme to a smile. """
-        self.gui['viseme'] = 'Smile'
+        pass
 
     def on_handler_interactingwithuser(self, message):
         """ Every time we do something that the user would notice,
@@ -400,10 +400,10 @@ class Mark2(MycroftSkill):
     # Manage "speaking" visual
 
     def on_handler_speaking(self, message):
+        self.gui["viseme"] = message.data
         if not self.has_show_page and self.gui['state'] != 'speaking':
             self.gui['state'] = 'speaking'
             self.gui.show_page("all.qml")
-        self.gui["viseme"] = message.data["code"]
 
     #####################################################################
     # Manage "idle" visual state
