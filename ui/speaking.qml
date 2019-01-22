@@ -102,6 +102,8 @@ Item {
             // Compare viseme start/stop with current time and choose viseme
             // appropriately
             for (var i = 0; i < sessionData.viseme.visemes.length; i+=2) {
+                if (sessionData.viseme.start == 0)
+                    break;
                 if (now >= offset &&
                         now < start + sessionData.viseme.visemes[i][1])
                         return Qt.resolvedUrl(

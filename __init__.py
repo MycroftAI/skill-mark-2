@@ -136,6 +136,9 @@ class Mark2(MycroftSkill):
         self.color_dict = self.translate_namedvalues('colors')
         self.gui['volume'] = 0
 
+        # Prepare GUI Viseme structure
+        self.gui['viseme'] = {'start': 0, 'visemes': []}
+
         # Start listening thread
         self.running = True
         self.thread = Thread(target=self.listen_thread)
@@ -280,11 +283,12 @@ class Mark2(MycroftSkill):
             self.gui['volume'] = amplitude
 
     def stop(self, message=None):
-        """ Clear override_idle. """
+        """ Clear override_idle and stop visemes. """
         if (self.override_idle and
                 time.monotonic() - self.override_idle[1] > 2):
             log.info("CLEARING OVERRIDE IDLE")
             self.override_idle = None
+        self.gui['viseme'] = {'start': 0, 'visemes': []}
         return False
 
     def shutdown(self):
