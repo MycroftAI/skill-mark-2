@@ -101,17 +101,19 @@ class Mark2(MycroftSkill):
         super().__init__("Mark2")
 
         self.idle_count = 99
+        self.idle_screens = {}
+        self.override_idle = None
+
         self.hourglass_info = {}
         self.interaction_id = 0
 
         self.settings['auto_brightness'] = False
         self.settings['auto_dim_eyes'] = True
         self.settings['use_listening_beep'] = True
-        self.settings['eye color'] = "default"
-        self.settings['current_eye_color'] = self.settings['eye color']
 
         self.has_show_page = False  # resets with each handler
 
+        # Volume indicatior
         self.setup_mic_listening()
         self.listener_file = os.path.join(get_ipc_directory(), "mic_level")
         self.st_results = os.stat(self.listener_file)
@@ -132,8 +134,10 @@ class Mark2(MycroftSkill):
         # Initialize...
         self.brightness_dict = self.translate_namedvalues('brightness.levels')
         self.color_dict = self.translate_namedvalues('colors')
-        self.settings['web eye color'] = self.settings['eye color']
         self.gui['volume'] = 0
+
+        # Prepare GUI Viseme structure
+        self.gui['viseme'] = {'start': 0, 'visemes': []}
 
         # Start listening thread
         self.running = True
@@ -142,13 +146,8 @@ class Mark2(MycroftSkill):
         self.thread.start()
 
         try:
-            # Handle changing the eye color once Mark 1 is ready to go
-            # (Part of the statup sequence)
             self.add_event('mycroft.internet.connected',
                            self.handle_internet_connected)
-
-            self.add_event('mycroft.eyes.default',
-                           self.handle_default_eyes)
 
             # Handle the 'waking' visual
             self.add_event('recognizer_loop:record_begin',
@@ -174,16 +173,50 @@ class Mark2(MycroftSkill):
                         self.on_handler_interactingwithuser)
             self.bus.on('enclosure.mouth.think',
                         self.on_handler_interactingwithuser)
+            self.bus.on('enclosure.mouth.reset',
+                        self.on_handler_mouth_reset)
+            self.bus.on('recognizer_loop:audio_output_end',
+                        self.on_handler_mouth_reset)
             self.bus.on('enclosure.mouth.events.deactivate',
                         self.on_handler_interactingwithuser)
             self.bus.on('enclosure.mouth.text',
                         self.on_handler_interactingwithuser)
-            self.bus.on('enclosure.mouth.viseme',
+            self.bus.on('enclosure.mouth.viseme_list',
                         self.on_handler_speaking)
             self.bus.on('gui.page.show',
                         self.on_gui_page_show)
+            self.bus.on('gui.page_interaction', self.on_gui_page_interaction)
 
             self.bus.on('mycroft.skills.initialized', self.reset_face)
+            self.bus.on('mycroft.mark2.register_idle',
+                        self.on_register_idle)
+            
+            # Handle device settings events
+            self.add_event('mycroft.device.settings', 
+                           self.handle_device_settings) #Use Legacy for QuickSetting delegate
+            self.gui.register_handler('mycroft.device.settings', 
+                                      self.handle_device_settings)
+            self.gui.register_handler('mycroft.device.settings.brightness', 
+                                      self.handle_device_brightness_settings)
+            self.gui.register_handler('mycroft.device.settings.homescreen', 
+                                      self.handle_device_homescreen_settings)
+            self.gui.register_handler('mycroft.device.settings.ssh', 
+                                      self.handle_device_ssh_settings)
+            self.gui.register_handler('mycroft.device.settings.reset', 
+                                      self.handle_device_factory_reset_settings)
+            self.gui.register_handler('mycroft.device.settings.update', 
+                                      self.handle_device_update_settings)
+            self.gui.register_handler('mycroft.device.settings.restart', 
+                                      self.handle_device_restart_action)
+            self.gui.register_handler('mycroft.device.settings.poweroff', 
+                            self.handle_device_poweroff_action)
+
+            # Show sleeping face while starting up skills.
+            self.gui['state'] = 'resting'
+            self.gui.show_page('all.qml')
+
+            # Collect Idle screens and display if skill is restarted
+            self.collect_resting_screens()
         except Exception:
             LOG.exception('In Mark 1 Skill')
 
@@ -192,16 +225,32 @@ class Mark2(MycroftSkill):
 
         self.settings.set_changed_callback(self.on_websettings_changed)
 
+    def collect_resting_screens(self):
+        """ Trigger collection and then show the resting screen. """
+        self.bus.emit(Message('mycroft.mark2.collect_idle'))
+        time.sleep(0.1)
+        self.show_idle_screen()
+
+    def on_register_idle(self, message):
+        """ Handler for catching incoming idle screens. """
+        if 'name' in message.data and 'id' in message.data:
+            self.idle_screens[message.data['name']] = message.data['id']
+            self.log.info('Registered {}'.format(message.data['name']))
+        else:
+            self.log.error('Malformed idle screen registration received')
+
     def reset_face(self, message):
-        if connected():
-            # Connected at startup: setting eye color
-            self.enclosure.mouth_reset()
+        """ Triggered after skills are initialized.
+
+            Sets switches from resting "face" to a registered resting screen.
+        """
+        time.sleep(1)
+        self.collect_resting_screens()
 
     def listen_thread(self):
         """ listen on mic input until self.running is False. """
         while(self.running):
             self.listen()
-            time.sleep(0.05)
 
     def get_audio_level(self):
         """ Get level directly from audio device. """
@@ -214,10 +263,14 @@ class Mark2(MycroftSkill):
             self.noisycount = 1
             return None
 
-        return int(get_rms(block) * 20)
+        amplitude = get_rms(block)
+        if amplitude > self.max_amplitude:
+            self.max_amplitude = amplitude
+        return int(amplitude / self.max_amplitude * 10)
 
     def get_listener_level(self):
         """ Get level from IPC file created by listener. """
+        time.sleep(0.05)
         try:
             st_results = os.stat(self.listener_file)
 
@@ -234,7 +287,6 @@ class Mark2(MycroftSkill):
             self.log.error(repr(e))
         return None
 
-        
     def listen(self):
         """ Read microphone level and store rms into self.gui['volume']. """
         #amplitude = self.get_audio_level()
@@ -244,6 +296,15 @@ class Mark2(MycroftSkill):
                      or self.gui['volume'] != amplitude) and
                  amplitude is not None):
             self.gui['volume'] = amplitude
+
+    def stop(self, message=None):
+        """ Clear override_idle and stop visemes. """
+        if (self.override_idle and
+                time.monotonic() - self.override_idle[1] > 2):
+            log.info("CLEARING OVERRIDE IDLE")
+            self.override_idle = None
+        self.gui['viseme'] = {'start': 0, 'visemes': []}
+        return False
 
     def shutdown(self):
         # Gotta clean up manually since not using add_event()
@@ -259,12 +320,18 @@ class Mark2(MycroftSkill):
                         self.on_handler_awoken)
         self.bus.remove('enclosure.mouth.think',
                         self.on_handler_interactingwithuser)
+        self.bus.remove('enclosure.mouth.reset',
+                        self.on_handler_mouth_reset)
+        self.bus.remove('recognizer_loop:audio_output_end',
+                        self.on_handler_mouth_reset)
         self.bus.remove('enclosure.mouth.events.deactivate',
                         self.on_handler_interactingwithuser)
         self.bus.remove('enclosure.mouth.text',
                         self.on_handler_interactingwithuser)
-        self.bus.remove('enclosure.mouth.viseme',
+        self.bus.remove('enclosure.mouth.viseme_list',
                         self.on_handler_speaking)
+        self.bus.remove('gui.page_interaction', self.on_gui_page_interaction)
+        self.bus.remove('mycroft.mark2.register_idle', self.on_register_idle)
 
         self.running = False
         self.thread.join()
@@ -291,16 +358,30 @@ class Mark2(MycroftSkill):
             #      immediately after the record_end?
             # self.gui.show_page("thinking.qml")
 
+    def on_gui_page_interaction(self, message):
+        self.idle_count = 0
+
     def on_gui_page_show(self, message):
-#        print('HANDLER', message.data.get("__from", ""))
         if "mark-2" not in message.data.get("__from", ""):
             # Some skill other than the handler is showing a page
-            # TODO: Maybe just check for the "speaking.qml" page?
             self.has_show_page = True
 
+            # If a skill overrides the idle do not switch page
+            override_idle = message.data.get('__idle')
+            if override_idle is not None:
+                self.log.debug("cancelling idle")
+                self.cancel_scheduled_event('IdleCheck')
+                self.idle_count = 0
+                self.override_idle = (message, time.monotonic())
+
+    def on_handler_mouth_reset(self, message):
+        """ Restore viseme to a smile. """
+        pass
+
     def on_handler_interactingwithuser(self, message):
-        # Every time we do something that the user would notice, increment
-        # an interaction counter.
+        """ Every time we do something that the user would notice,
+            increment an interaction counter.
+        """
         self.interaction_id += 1
 
     def on_handler_sleep(self, message):
@@ -338,64 +419,70 @@ class Mark2(MycroftSkill):
     # Manage "speaking" visual
 
     def on_handler_speaking(self, message):
-        print(message.data["code"], self.has_show_page)
+        self.gui["viseme"] = message.data
         if not self.has_show_page and self.gui['state'] != 'speaking':
             self.gui['state'] = 'speaking'
             self.gui.show_page("all.qml")
-        self.gui["viseme"] = message.data["code"]
 
     #####################################################################
     # Manage "idle" visual state
 
     def start_idle_check(self):
         # Clear any existing checker
-        print("!!!!! START IDLE CHECK !!!!!")
         self.cancel_scheduled_event('IdleCheck')
         self.idle_count = 0
 
-        if True:
-            # Schedule a check every few seconds
-            self.schedule_repeating_event(self.check_for_idle, None,
-                                          Mark2.IDLE_CHECK_FREQUENCY,
-                                          name='IdleCheck')
+        # Schedule a check every few seconds
+        self.schedule_repeating_event(self.check_for_idle, None,
+                                      Mark2.IDLE_CHECK_FREQUENCY,
+                                      name='IdleCheck')
 
     def check_for_idle(self):
-        print('CHECING IDLE')
-        if True:
-            # No activity, start to fall asleep
-            self.idle_count += 1
+        # No activity, start to fall asleep
+        self.idle_count += 1
 
-            if self.idle_count == 5:
-                # Go into a 'sleep' visual state
-                print("TRIGGERED!")
-                self.bus.emit(Message('mycroft-date-time.mycroftai.idle'))
-            elif self.idle_count > 5:
-                self.cancel_scheduled_event('IdleCheck')
+        if self.idle_count == 5:
+            # Go into a 'sleep' visual state
+            self.show_idle_screen()
+        elif self.idle_count > 5:
+            self.cancel_scheduled_event('IdleCheck')
+
+    def show_idle_screen(self):
+        """ Show the idle screen or return to the skill that's overriding idle.
+        """
+        screen = None
+        if self.override_idle:
+            self.log.debug("Returning to override")
+            # Restore the page overriding idle instead of the normal idle
+            self.bus.emit(self.override_idle[0])
+        elif len(self.idle_screens) > 0:
+            # TODO remove hard coded value
+            idle_screen = 'Time and Date'  # TODO: un-hard-code
+            self.log.debug('Showing Idle screen for {}'.format(idle_screen))
+            screen = self.idle_screens.get(idle_screen)
+        if screen:
+            self.bus.emit(Message('{}.idle'.format(screen)))
 
     def handle_listener_started(self, message):
-        if False:
-            self.cancel_scheduled_event('IdleCheck')
-        else:
-            print("IDLE CHECK!")
-            # Check if in 'idle' state and visually come to attention
-            if self.idle_count > 2:
-                # Perform 'waking' animation
-                # TODO: Anything in QML?  E.g. self.gui.show_page("waking.qml")
+        """ Shows listener page after wakeword is triggered.
 
-                # Begin checking for the idle state again
-                self.idle_count = 0
-                self.start_idle_check()
+            Starts countdown to show the idle page.
+        """
+        # Start idle timer
+        self.start_idle_check()
 
+        # Show listening page
         self.gui['state'] = 'listening'
         self.gui.show_page('all.qml')
 
     def handle_listener_ended(self, message):
+        """ When listening has ended show the thinking animation. """
         self.gui['state'] = 'thinking'
         self.gui.show_page('all.qml')
 
     def handle_failed_stt(self, message):
         # No discernable words were transcribed
-        self.gui.show_page("idle.qml")
+        pass
 
     #####################################################################
     # Manage network connction feedback
@@ -403,12 +490,6 @@ class Mark2(MycroftSkill):
     def handle_internet_connected(self, message):
         # System came online later after booting
         self.enclosure.mouth_reset()
-
-    #####################################################################
-    # Reset eye appearance
-
-    def handle_default_eyes(self, message):
-        pass # self.set_eye_color(self.settings['current_eye_color'], speak=False)
 
     #####################################################################
     # Web settings
@@ -635,6 +716,68 @@ class Mark2(MycroftSkill):
             self.set_eye_brightness(level, speak=False)
             pair = self._get_auto_time()[time_of_day]
             self.schedule_brightness(time_of_day, pair)
+
+    #####################################################################
+    # Device Settings
+    
+    @intent_file_handler('device.settings.intent')
+    def handle_device_settings(self, message):
+        """ 
+            display device settings page
+        """
+        self.gui['state'] = 'settings/settingspage'
+        self.gui.show_page('all.qml')
+    
+    @intent_file_handler('device.brightness.settings.intent')
+    def handle_device_brightness_settings(self, message):
+        """
+            display brightness settings page
+        """
+        self.gui['state'] = 'settings/brightness_settings'
+        self.gui.show_page('all.qml')
+        
+    @intent_file_handler('device.homescreen.settings.intent')
+    def handle_device_homescreen_settings(self, message):
+        """
+            display homescreen settings page
+        """
+        self.gui['state'] = 'settings/homescreen_settings'
+        self.gui.show_page('all.qml')
+        
+    @intent_file_handler('device.ssh.settings.intent')
+    def handle_device_ssh_settings(self, message):
+        """
+            display ssh settings page
+        """
+        self.gui['state'] = 'settings/ssh_settings'
+        self.gui.show_page('all.qml')
+
+    @intent_file_handler('device.reset.settings.intent')
+    def handle_device_factory_reset_settings(self, message):
+        """
+            display device factory reset settings page
+        """
+        self.gui['state'] = 'settings/factoryreset_settings'
+        self.gui.show_page('all.qml')
+        
+    def handle_device_update_settings(self, message):
+        """
+            display device update settings page
+        """
+        self.gui['state'] = 'settings/updatedevice_settings'
+        self.gui.show_page('all.qml')
+        
+    def handle_device_restart_action(self, message):
+        """
+            device restart action
+        """
+        self.log.info("PlaceholderRestartAction")
+
+    def handle_device_poweroff_action(self, message):
+        """
+            device poweroff action
+        """
+        self.log.info("PlaceholderShutdownAction")
 
 
 def create_skill():

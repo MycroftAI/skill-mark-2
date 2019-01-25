@@ -7,7 +7,6 @@ import Mycroft 1.0 as Mycroft
 
 Item {
     function getVisemeImg(viseme){
-        console.log(viseme)
         return "face/" + viseme + ".svg"
     }
 
@@ -88,7 +87,32 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             fillMode: Image.PreserveAspectFit
             width: 266
-            source: Qt.resolvedUrl(getVisemeImg(sessionData.viseme))
+            source: Qt.resolvedUrl(getVisemeImg("Smile"))
         }
+    }
+    Timer {
+	id: tmr
+	interval: 50 // every 50 ms
+	running: true
+	repeat: true
+        onTriggered: smile.source = Qt.binding(function() {
+            var now = Date.now() / 1000;
+            var start = sessionData.viseme.start;
+            var offset = start;
+            // Compare viseme start/stop with current time and choose viseme
+            // appropriately
+            for (var i = 0; i < sessionData.viseme.visemes.length; i+=2) {
+                if (sessionData.viseme.start == 0)
+                    break;
+                if (now >= offset &&
+                        now < start + sessionData.viseme.visemes[i][1])
+                        return Qt.resolvedUrl(
+                            getVisemeImg(sessionData.viseme.visemes[i][0]));
+                offset = start + sessionData.viseme.visemes[i][1];
+            }
+            // Outside of span show default smile
+            return Qt.resolvedUrl(getVisemeImg("Smile"));
+	});
+
     }
 }
