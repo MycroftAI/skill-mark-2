@@ -211,8 +211,12 @@ class Mark2(MycroftSkill):
             self.gui.register_handler('mycroft.device.settings.poweroff', 
                             self.handle_device_poweroff_action)
 
-            # Collect Idle screens
-            self.bus.emit(Message('mycroft.mark2.collect_idle'))
+            # Show sleeping face while starting up skills.
+            self.gui['state'] = 'resting'
+            self.gui.show_page('all.qml')
+
+            # Collect Idle screens and display if skill is restarted
+            self.collect_resting_screens()
         except Exception:
             LOG.exception('In Mark 1 Skill')
 
@@ -221,7 +225,14 @@ class Mark2(MycroftSkill):
 
         self.settings.set_changed_callback(self.on_websettings_changed)
 
+    def collect_resting_screens(self):
+        """ Trigger collection and then show the resting screen. """
+        self.bus.emit(Message('mycroft.mark2.collect_idle'))
+        time.sleep(0.1)
+        self.show_idle_screen()
+
     def on_register_idle(self, message):
+        """ Handler for catching incoming idle screens. """
         if 'name' in message.data and 'id' in message.data:
             self.idle_screens[message.data['name']] = message.data['id']
             self.log.info('Registered {}'.format(message.data['name']))
@@ -229,8 +240,12 @@ class Mark2(MycroftSkill):
             self.log.error('Malformed idle screen registration received')
 
     def reset_face(self, message):
-        if connected():
-            self.show_idle_screen()
+        """ Triggered after skills are initialized.
+
+            Sets switches from resting "face" to a registered resting screen.
+        """
+        time.sleep(1)
+        self.collect_resting_screens()
 
     def listen_thread(self):
         """ listen on mic input until self.running is False. """
