@@ -1,4 +1,3 @@
- 
 import QtQuick.Layouts 1.4
 import QtQuick 2.4
 import QtQuick.Controls 2.0
@@ -33,7 +32,8 @@ Item {
         anchors.topMargin: Kirigami.Units.largeSpacing
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
+        anchors.bottom: bottomArea.top
+        anchors.bottomMargin: Kirigami.Units.largeSpacing
         
         ListView {
             anchors.fill: parent
@@ -57,7 +57,7 @@ Item {
                             Layout.fillWidth: true
                             spacing: Math.round(units.gridUnit / 2)
                 
-                            PlasmaCore.IconItem {
+                            Kirigami.Icon {
                                 Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
                                 Layout.preferredHeight: units.iconSizes.medium
                                 Layout.preferredWidth: units.iconSizes.medium
@@ -81,7 +81,32 @@ Item {
                 }
                 
                 onClicked: {
-                    triggerEvent(model.settingEvent, {})
+                        triggerEvent(model.settingEvent, {})
+                }
+            }
+        }
+    }
+    
+    Item {
+    id: bottomArea
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    height: backIcon.implicitHeight + Kirigami.Units.largeSpacing
+        
+        Kirigami.Icon {
+            id: backIcon
+            source: "go-previous"
+            anchors.left: parent.left
+            anchors.leftMargin: Kirigami.Units.largeSpacing
+            height: Kirigami.Units.gridUnit * 2
+            width: Kirigami.Units.gridUnit * 2
+            
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    triggerEvent("mycroft.device.show.ideal", {})
+                    console.log("triggered")
                 }
             }
         }
