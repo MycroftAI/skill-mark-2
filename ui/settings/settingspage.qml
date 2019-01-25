@@ -1,4 +1,3 @@
- 
 import QtQuick.Layouts 1.4
 import QtQuick 2.4
 import QtQuick.Controls 2.0
@@ -57,7 +56,7 @@ Item {
                             Layout.fillWidth: true
                             spacing: Math.round(units.gridUnit / 2)
                 
-                            PlasmaCore.IconItem {
+                            Kirigami.Icon {
                                 Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
                                 Layout.preferredHeight: units.iconSizes.medium
                                 Layout.preferredWidth: units.iconSizes.medium
@@ -81,7 +80,7 @@ Item {
                 }
                 
                 onClicked: {
-                    triggerEvent(model.settingEvent, {})
+                        triggerEvent(model.settingEvent, {})
                 }
             }
         }

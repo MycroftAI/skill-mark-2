@@ -210,6 +210,20 @@ class Mark2(MycroftSkill):
                                       self.handle_device_restart_action)
             self.gui.register_handler('mycroft.device.settings.poweroff', 
                             self.handle_device_poweroff_action)
+            self.gui.register_handler('mycroft.device.settings.wireless', 
+                                      self.handle_show_wifi_screen_intent)
+
+            # Handle networking events sequence
+            self.gui.register_handler('networkConnect.wifi', 
+                                      self.handle_show_wifi_pass_screen_intent)
+            self.gui.register_handler('networkConnect.connecting', 
+                                      self.handle_show_network_connecting_screen_intent)
+            self.gui.register_handler('networkConnect.connected', 
+                                      self.handle_show_network_connected_screen_intent)
+            self.gui.register_handler('networkConnect.failed', 
+                                      self.handle_show_network_fail_screen_intent)
+            self.gui.register_handler('networkConnect.return', 
+                                      self.handle_return_to_networkselection)
 
             # Show sleeping face while starting up skills.
             self.gui['state'] = 'resting'
@@ -727,6 +741,15 @@ class Mark2(MycroftSkill):
         """
         self.gui['state'] = 'settings/settingspage'
         self.gui.show_page('all.qml')
+        
+    @intent_file_handler('device.wifi.settings.intent')
+    def handle_show_wifi_screen_intent(self, message):
+        """ 
+            display network selection page
+        """
+        self.gui.clear()
+        self.gui['state'] = "settings/networking/SelectNetwork"
+        self.gui.show_page('all.qml')
     
     @intent_file_handler('device.brightness.settings.intent')
     def handle_device_brightness_settings(self, message):
@@ -741,6 +764,7 @@ class Mark2(MycroftSkill):
         """
             display homescreen settings page
         """
+        self.gui['idealScreenList'] = self.idle_screens
         self.gui['state'] = 'settings/homescreen_settings'
         self.gui.show_page('all.qml')
         
@@ -771,13 +795,55 @@ class Mark2(MycroftSkill):
         """
             device restart action
         """
-        self.log.info("PlaceholderRestartAction")
+        print("PlaceholderRestartAction")
 
     def handle_device_poweroff_action(self, message):
         """
             device poweroff action
         """
-        self.log.info("PlaceholderShutdownAction")
+        print("PlaceholderShutdownAction")
+        
+    #####################################################################
+    # Device Networking Settings
+        
+    def handle_show_wifi_pass_screen_intent(self, message):
+        """ 
+            display network setup page
+        """
+        self.gui['state'] = "settings/networking/NetworkConnect"
+        self.gui.show_page('all.qml')
+        self.gui["ConnectionName"] = message.data["ConnectionName"]
+        self.gui["SecurityType"] = message.data["SecurityType"]
+        self.gui["DevicePath"] = message.data["DevicePath"]
+        self.gui["SpecificPath"] = message.data["SpecificPath"]
+    
+    def handle_show_network_connecting_screen_intent(self, message):
+        """
+            display network connecting state
+        """
+        self.gui['state'] = "settings/networking/Connecting"
+        self.gui.show_page("all.qml")
+    
+    def handle_show_network_connected_screen_intent(self, message):
+        """
+            display network connected state
+        """
+        self.gui['state'] = "settings/networking/Success"
+        self.gui.show_page("all.qml")
+    
+    def handle_show_network_fail_screen_intent(self, message):
+        """
+            display network failed state
+        """
+        self.gui['state'] = "settings/networking/Fail"
+        self.gui.show_page("all.qml")
+        
+    def handle_return_to_networkselection(self):
+        """
+            return to network selection on failure
+        """
+        self.gui['state'] = "settings/networking/SelectNetwork"
+        self.gui.show_page("all.qml")
 
 
 def create_skill():

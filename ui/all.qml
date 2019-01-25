@@ -9,6 +9,11 @@ Mycroft.Delegate {
     anchors.fill: parent
     skillBackgroundSource: Qt.resolvedUrl("bg.png")
     property var pageToLoad: sessionData.state
+    property var securityType: sessionData.SecurityType
+    property var connectionName: sessionData.ConnectionName
+    property var devicePath: sessionData.DevicePath
+    property var specificPath: sessionData.SpecificPath
+    property var idealScreenList: sessionData.idealScreenList
     
     Loader {
         id: rootLoader
