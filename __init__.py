@@ -212,7 +212,7 @@ class Mark2(MycroftSkill):
                             self.handle_device_poweroff_action)
             self.gui.register_handler('mycroft.device.settings.wireless', 
                                       self.handle_show_wifi_screen_intent)
-            self.gui.register_handler('mycroft.device.show.ideal', self.show_idle_screen)
+            self.gui.register_handler('mycroft.device.show.idle', self.show_idle_screen)
 
             # Handle networking events sequence
             self.gui.register_handler('networkConnect.wifi', 
@@ -765,7 +765,7 @@ class Mark2(MycroftSkill):
         """
             display homescreen settings page
         """
-        self.gui['idealScreenList'] = self.idle_screens
+        self.gui['idleScreenList'] = self.idle_screens
         self.gui['state'] = 'settings/homescreen_settings'
         self.gui.show_page('all.qml')
         

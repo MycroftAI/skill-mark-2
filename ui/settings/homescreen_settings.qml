@@ -25,10 +25,10 @@ import Mycroft 1.0 as Mycroft
 Item {
     id: homeScreenSettingsView
     anchors.fill: parent
-    property var modelItemList: mainLoaderView.idealScreenList
+    property var modelItemList: mainLoaderView.idleScreenList
     
     onModelItemListChanged: {
-       listIdealFaces.model = modelItemList.screenBlob
+       listIdleFaces.model = modelItemList.screenBlob
     }
     
     Item {
@@ -57,7 +57,7 @@ Item {
         anchors.bottom: bottomArea.top
         
       ListView {
-            id: listIdealFaces
+            id: listIdleFaces
             anchors.fill: parent
             clip: true
             boundsBehavior: Flickable.StopAtBounds
@@ -102,12 +102,12 @@ Item {
                 }
                 
                 onClicked: {
-                   model.activeFace = true // triggerEvent("device.activate.face", {"skillID": "idealFace"}) Requires API Logic
+                   model.activeFace = true // triggerEvent("device.activate.face", {"skillID": "idleFace"}) Requires API Logic
                 }
             }
             
             Component.onCompleted: {
-                listIdealFaces.count
+                listIdleFaces.count
             }
         }
     }

@@ -105,7 +105,7 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    triggerEvent("mycroft.device.show.ideal", {})
+                    triggerEvent("mycroft.device.show.idle", {})
                     console.log("triggered")
                 }
             }

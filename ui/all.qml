@@ -13,7 +13,7 @@ Mycroft.Delegate {
     property var connectionName: sessionData.ConnectionName
     property var devicePath: sessionData.DevicePath
     property var specificPath: sessionData.SpecificPath
-    property var idealScreenList: sessionData.idealScreenList
+    property var idleScreenList: sessionData.idleScreenList
     
     Loader {
         id: rootLoader
