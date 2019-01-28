@@ -102,7 +102,9 @@ Item {
                 }
                 
                 onClicked: {
-                   model.activeFace = true // triggerEvent("device.activate.face", {"skillID": "idleFace"}) Requires API Logic
+                    console.log(modelData.screenName)
+                    sessionData.selected = modelData.screenName
+                    model.activeFace = true // triggerEvent("device.activate.face", {"skillID": "idleFace"}) Requires API Logic
                 }
             }
             

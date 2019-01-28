@@ -139,6 +139,10 @@ class Mark2(MycroftSkill):
         # Prepare GUI Viseme structure
         self.gui['viseme'] = {'start': 0, 'visemes': []}
 
+        # Preselect Time and Date as resting screen
+        self.gui['selected'] = self.settings.get('selected', 'Time and Date')
+        self.gui.set_on_gui_changed(self.save_resting_screen)
+
         # Start listening thread
         self.running = True
         self.thread = Thread(target=self.listen_thread)
@@ -239,6 +243,15 @@ class Mark2(MycroftSkill):
         self._sync_wake_beep_setting()
 
         self.settings.set_changed_callback(self.on_websettings_changed)
+
+    def save_resting_screen(self):
+        """ Handler to be called if the settings are changed by
+            the GUI.
+
+            Stores the selected idle screen.
+        """
+        self.log.debug("Saving resting screen")
+        self.settings['selected'] = self.gui['selected']
 
     def collect_resting_screens(self):
         """ Trigger collection and then show the resting screen. """
@@ -472,9 +485,9 @@ class Mark2(MycroftSkill):
             self.bus.emit(self.override_idle[0])
         elif len(self.idle_screens) > 0:
             # TODO remove hard coded value
-            idle_screen = 'Time and Date'  # TODO: un-hard-code
-            self.log.debug('Showing Idle screen for {}'.format(idle_screen))
-            screen = self.idle_screens.get(idle_screen)
+            self.log.debug('Showing Idle screen for '
+                           '{}'.format(self.gui['selected']))
+            screen = self.idle_screens.get(self.gui['selected'])
         if screen:
             self.bus.emit(Message('{}.idle'.format(screen)))
 
@@ -765,7 +778,10 @@ class Mark2(MycroftSkill):
         """
             display homescreen settings page
         """
-        self.gui['idleScreenList'] = self.idle_screens
+        screens = [{"screenName": s, "screenID": self.idle_screens[s]}
+                   for s in self.idle_screens]
+        self.gui['idleScreenList'] = {'screenBlob': screens}
+        print(self.gui['idleScreenList'])
         self.gui['state'] = 'settings/homescreen_settings'
         self.gui.show_page('all.qml')
         
