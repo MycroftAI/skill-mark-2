@@ -50,7 +50,7 @@ Item {
         anchors.topMargin: Kirigami.Units.largeSpacing
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: bottomArea.top
+        anchors.bottom: areaSep.top
         
         ColumnLayout {
             anchors.left: parent.left
@@ -140,26 +140,46 @@ Item {
         }
     }
 
+    Kirigami.Separator {
+        id: areaSep
+        anchors.bottom: bottomArea.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 1
+    }
+    
     Item {
         id: bottomArea
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: backIcon.implicitHeight + Kirigami.Units.largeSpacing
-        
-        Kirigami.Icon {
-            id: backIcon
-            source: "arrow-left"
-            anchors.left: parent.left
-            anchors.leftMargin: Kirigami.Units.largeSpacing
-            width: Kirigami.Units.iconSizes.large
-            height: implicitWidth
+        anchors.bottomMargin: Kirigami.Units.largeSpacing * 1.15
+        height: backIcon.implicitHeight + Kirigami.Units.largeSpacing * 1.15
+
+        RowLayout {
+            anchors.fill: parent
             
-            MouseArea{
-                anchors.fill: parent
-                onClicked: {
-                    triggerEvent("mycroft.device.settings", {})
-                }
+            Kirigami.Icon {
+                id: backIcon
+                source: "go-previous"
+                Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+            }
+            
+            Kirigami.Heading {
+                level: 2
+                wrapMode: Text.WordWrap
+                font.bold: true
+                text: "Device Settings"
+                Layout.fillWidth: true
+                Layout.preferredHeight: Kirigami.Units.gridUnit * 2
+            }
+        }
+        
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                triggerEvent("mycroft.device.settings", {})
             }
         }
     }
