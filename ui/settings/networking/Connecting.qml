@@ -60,7 +60,7 @@ Item {
         target: disconnectedStatus
         onDisconnectedStatusChanged: {
             if(disconnectedStatus == 1){
-                triggerEvent("networkConnect.failed")
+                triggerEvent("networkConnect.failed", {})
             }
         }
     }
