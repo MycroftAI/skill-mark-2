@@ -25,7 +25,12 @@ import Mycroft 1.0 as Mycroft
 Item {
     id: homeScreenSettingsView
     anchors.fill: parent
-        
+    property var modelItemList: mainLoaderView.idleScreenList
+    
+    onModelItemListChanged: {
+       listIdleFaces.model = modelItemList.screenBlob
+    }
+    
     Item {
         id: topArea
         anchors.left: parent.left
@@ -51,15 +56,10 @@ Item {
         anchors.right: parent.right
         anchors.bottom: bottomArea.top
         
-        ListView {
-            id: listIdealFaces
+      ListView {
+            id: listIdleFaces
             anchors.fill: parent
             clip: true
-            model: ListModel {
-                ListElement {placeHolderName: "Clock"; activeFace: true}
-                ListElement {placeHolderName: "Weather"; activeFace: false}
-                ListElement {placeHolderName: "Date & Time"; activeFace: false}
-            }
             boundsBehavior: Flickable.StopAtBounds
             delegate: Kirigami.AbstractListItem {
                 contentItem: Item {
@@ -84,7 +84,7 @@ Item {
                                 height: paintedHeight
                                 elide: Text.ElideRight
                                 font.weight: Font.DemiBold
-                                text: model.placeHolderName
+                                text: modelData.screenName
                                 textFormat: Text.PlainText
                                 level: 2
                             }
@@ -102,8 +102,14 @@ Item {
                 }
                 
                 onClicked: {
-                   model.activeFace = true // triggerEvent("device.activate.face", {"skillID": "idealFace"}) Requires API Logic
+                    console.log(modelData.screenName)
+                    sessionData.selected = modelData.screenName
+                    model.activeFace = true // triggerEvent("device.activate.face", {"skillID": "idleFace"}) Requires API Logic
                 }
+            }
+            
+            Component.onCompleted: {
+                listIdleFaces.count
             }
         }
     }
