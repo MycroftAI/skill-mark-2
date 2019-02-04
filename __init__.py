@@ -329,7 +329,6 @@ class Mark2(MycroftSkill):
         """ Clear override_idle and stop visemes. """
         if (self.override_idle and
                 time.monotonic() - self.override_idle[1] > 2):
-            log.info("CLEARING OVERRIDE IDLE")
             self.override_idle = None
         self.gui['viseme'] = {'start': 0, 'visemes': []}
         return False
