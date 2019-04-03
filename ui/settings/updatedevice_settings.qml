@@ -93,7 +93,7 @@ Item {
                 text: "Check For Updates"
                 
                 onClicked: {
-                    triggerEvent("mycroft.device.check.updates", {})
+                    triggerGuiEvent("mycroft.device.check.updates", {})
                 }
             }
     
@@ -148,7 +148,7 @@ Item {
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                triggerEvent("mycroft.device.settings", {})
+                triggerGuiEvent("mycroft.device.settings", {})
             }
         }
     }

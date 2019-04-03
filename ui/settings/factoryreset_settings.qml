@@ -78,7 +78,7 @@ Item {
                 text: "Factory Reset Device"
                 
                 onClicked: {
-                    triggerEvent("mycroft.device.factory.reset", {})
+                    triggerGuiEvent("mycroft.device.factory.reset", {})
                 }
             }
         }
@@ -123,7 +123,7 @@ Item {
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                triggerEvent("mycroft.device.settings", {})
+                triggerGuiEvent("mycroft.device.settings", {})
             }
         }
     }

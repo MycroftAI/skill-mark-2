@@ -81,7 +81,7 @@ Item {
                 }
                 
                 onClicked: {
-                        triggerEvent(model.settingEvent, {})
+                        triggerGuiEvent(model.settingEvent, {})
                 }
             }
         }
@@ -126,7 +126,7 @@ Item {
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                triggerEvent("mycroft.device.show.idle", {})
+                triggerGuiEvent("mycroft.device.show.idle", {})
             }
         }
     }
