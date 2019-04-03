@@ -179,7 +179,7 @@ Item {
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                triggerEvent("mycroft.device.settings", {})
+                triggerGuiEvent("mycroft.device.settings", {})
             }
         }
     }

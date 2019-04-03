@@ -108,10 +108,10 @@ Kirigami.AbstractListItem {
     onClicked: {
         console.log(model.ConnectionPath, model.DevicePath, model.SpecificPath)
         if(!model.ConnectionPath){
-            triggerEvent("networkConnect.wifi", {"DevicePath": model.DevicePath, "SpecificPath": model.SpecificPath, "ConnectionName": connectionNameLabel.text, "SecurityType": model.SecurityType});
+            triggerGuiEvent("networkConnect.wifi", {"DevicePath": model.DevicePath, "SpecificPath": model.SpecificPath, "ConnectionName": connectionNameLabel.text, "SecurityType": model.SecurityType});
         }
         else if (model.ConnectionState == PlasmaNM.Enums.Deactivated) {
-            triggerEvent("networkConnect.connecting", {})
+            triggerGuiEvent("networkConnect.connecting", {})
             handler.activateConnection(model.ConnectionPath, model.DevicePath, model.SpecificPath)
         }
         else {
