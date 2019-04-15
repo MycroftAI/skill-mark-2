@@ -108,7 +108,6 @@ class Mark2(MycroftSkill):
         self.interaction_id = 0
 
         self.settings['auto_brightness'] = False
-        self.settings['auto_dim_eyes'] = True
         self.settings['use_listening_beep'] = True
 
         self.has_show_page = False  # resets with each handler
@@ -133,7 +132,6 @@ class Mark2(MycroftSkill):
     def initialize(self):
         # Initialize...
         self.brightness_dict = self.translate_namedvalues('brightness.levels')
-        self.color_dict = self.translate_namedvalues('colors')
         self.gui['volume'] = 0
 
         # Prepare GUI Viseme structure
@@ -522,17 +520,7 @@ class Mark2(MycroftSkill):
     # Web settings
 
     def on_websettings_changed(self):
-        # Update eye state if auto_dim_eyes changes...
-        # if self.settings.get("auto_dim_eyes"):
-        #     self.start_idle_check()
-        # else:
-        #     # No longer dimming, show open eyes if closed...
-        #     self.cancel_scheduled_event('IdleCheck')
-        #     if self.idle_count > 2:
-        #         self.idle_count = 0
-        #         self.enclosure.eyes_color(self._current_color)
-
-        # Update use of wake-up beep
+        """ Update use of wake-up beep. """
         self._sync_wake_beep_setting()
 
     def _sync_wake_beep_setting(self):
@@ -602,14 +590,14 @@ class Mark2(MycroftSkill):
         except:
             return None  # failed in an int() conversion
 
-    def set_eye_brightness(self, level, speak=True):
-        """ Actually change hardware eye brightness
+    def set_screen_brightness(self, level, speak=True):
+        """ Actually change screen brightness
 
             Args:
                 level (int): 0-30, brightness level
                 speak (bool): when True, speak a confirmation
         """
-        self.enclosure.eyes_brightness(level)
+        # TODO CHANGE THE BRIGHTNESS
         if speak is True:
             percent = int(float(level)*float(100)/float(30))
             self.speak_dialog(
@@ -624,11 +612,11 @@ class Mark2(MycroftSkill):
             self.handle_auto_brightness(None)
         else:
             self.auto_brightness = False
-            self.set_eye_brightness(self.percent_to_level(percent))
+            self.set_screen_brightness(self.percent_to_level(percent))
 
     @intent_file_handler('brightness.intent')
     def handle_brightness(self, message):
-        """ Intent Callback to set custom eye brightness
+        """ Intent Callback to set custom screen brightness
 
             Args:
                 message (dict): messagebus message from intent parser
@@ -692,14 +680,12 @@ class Mark2(MycroftSkill):
         data = (time_of_day, brightness)
         if now.timestamp > arw_d_time.timestamp:
             d_time = arrow.get(d_time).shift(hours=+24)
-            self.schedule_event(self._handle_eye_brightness_event, d_time,
+            self.schedule_event(self._handle_screen_brightness_event, d_time,
                                 data=data, name=time_of_day)
         else:
-            self.schedule_event(self._handle_eye_brightness_event, d_time,
+            self.schedule_event(self._handle_screen_brightness_event, d_time,
                                 data=data, name=time_of_day)
 
-    # TODO: this is currently set by voice.
-    # allow setting from faceplate and web ui
     @intent_file_handler('brightness.auto.intent')
     def handle_auto_brightness(self, message):
         """ brightness varies depending on time of day
@@ -716,21 +702,10 @@ class Mark2(MycroftSkill):
             t = arrow.get(pair[0]).timestamp
             if abs(now - t) < nearest_time_to_now[0]:
                 nearest_time_to_now = (abs(now - t), pair[1], time_of_day)
-        self.set_eye_brightness(nearest_time_to_now[1], speak=False)
+        self.set_screen_brightness(nearest_time_to_now[1], speak=False)
 
-        # SSP: I'm disabling this for now.  I don't think we
-        # should announce this every day, it'll get tedious.
-        #
-        # tod = nearest_time_to_now[2]
-        # if tod == 'Sunrise':
-        #     self.speak_dialog('auto.sunrise')
-        # elif tod == 'Sunset':
-        #     self.speak_dialog('auto.sunset')
-        # elif tod == 'Noon':
-        #     self.speak_dialog('auto.noon')
-
-    def _handle_eye_brightness_event(self, message):
-        """ wrapper for setting eye brightness from
+    def _handle_screen_brightness_event(self, message):
+        """ wrapper for setting screen brightness from
             eventscheduler
 
             Args:
@@ -740,7 +715,7 @@ class Mark2(MycroftSkill):
             time_of_day = message.data[0]
             level = message.data[1]
             self.cancel_scheduled_event(time_of_day)
-            self.set_eye_brightness(level, speak=False)
+            self.set_screen_brightness(level, speak=False)
             pair = self._get_auto_time()[time_of_day]
             self.schedule_brightness(time_of_day, pair)
 
@@ -780,7 +755,6 @@ class Mark2(MycroftSkill):
         screens = [{"screenName": s, "screenID": self.idle_screens[s]}
                    for s in self.idle_screens]
         self.gui['idleScreenList'] = {'screenBlob': screens}
-        print(self.gui['idleScreenList'])
         self.gui['state'] = 'settings/homescreen_settings'
         self.gui.show_page('all.qml')
         
