@@ -116,7 +116,7 @@ class Mark2(MycroftSkill):
         self.setup_mic_listening()
         self.listener_file = os.path.join(get_ipc_directory(), "mic_level")
         self.st_results = os.stat(self.listener_file)
-        self.max_amplitude = 0
+        self.max_amplitude = 0.001
 
     def setup_mic_listening(self):
         """ Initializes PyAudio, starts an input stream and launches the
@@ -285,14 +285,13 @@ class Mark2(MycroftSkill):
         except IOError as e:
             # damn
             self.errorcount += 1
-            self.log.error("(%d) Error recording: %s"%(self.errorcount,e))
-            self.noisycount = 1
+            self.log.error("{} Error recording: {}".format(self.errorcount, e))
             return None
 
         amplitude = get_rms(block)
-        if amplitude > self.max_amplitude:
-            self.max_amplitude = amplitude
-        return int(amplitude / self.max_amplitude * 10)
+        result = int(amplitude / ((self.max_amplitude) + 0.001) * 15) 
+        self.max_amplitude = max(amplitude, self.max_amplitude)
+        return result
 
     def get_listener_level(self):
         """ Get level from IPC file created by listener. """
@@ -315,8 +314,8 @@ class Mark2(MycroftSkill):
 
     def listen(self):
         """ Read microphone level and store rms into self.gui['volume']. """
-        #amplitude = self.get_audio_level()
-        amplitude = self.get_listener_level()
+        amplitude = self.get_audio_level()
+        #amplitude = self.get_listener_level()
 
         if (self.gui and ('volume' not in self.gui
                      or self.gui['volume'] != amplitude) and
