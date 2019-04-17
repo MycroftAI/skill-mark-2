@@ -18,7 +18,7 @@ its brightness level to dim at night.
 Mycroft AI (@MycroftAI)
 
 ## Supported Devices
-platform_mark2
+platform_mark2 platform_respeaker
 
 ## Category
 **Configuration**
