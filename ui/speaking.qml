@@ -10,6 +10,17 @@ Item {
         return "face/" + viseme + ".svg"
     }
 
+    function getVisemeWidth(viseme){
+        switch (viseme) {
+            case "0": return 290 / 2;
+            case "1": return 130 / 2;
+            case "2": return 250 / 2;
+            case "3": return 170 / 2;
+            case "4": return 60 / 2;
+            case "5": return 110 / 2;
+            case "6": return 90 / 2;
+        }
+    }
     Item {
         id: top_spacing
         anchors.top: parent.top
@@ -81,8 +92,27 @@ Item {
         width: 266
         height: 115
         color: "#00000000"
+    }
+    Rectangle {
+        id: mouth_viseme
+        anchors.verticalCenter: mouth_rectangle.verticalCenter
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: 40
+        height: width
+        radius: width / 2
+        color: "black"
+        border.color: "white"
+        border.width: 20
+    }
+    Rectangle {
+        id: smile
+        anchors.verticalCenter: mouth_rectangle.verticalCenter
+        anchors.horizontalCenter: parent.horizontalCenter
+        color: "black"
+        width: 266
+        height: 100
         Image {
-            id: smile
+            id: smile_img
             anchors.centerIn: parent
             anchors.horizontalCenter: parent.horizontalCenter
             fillMode: Image.PreserveAspectFit
@@ -90,12 +120,20 @@ Item {
             source: Qt.resolvedUrl(getVisemeImg("Smile"))
         }
     }
+
+    PropertyAnimation {
+        id: anim
+        target: mouth_viseme
+        property: "width"
+        to: 40
+        duration: 50
+    }
     Timer {
 	id: tmr
 	interval: 50 // every 50 ms
 	running: true
 	repeat: true
-        onTriggered: smile.source = Qt.binding(function() {
+        onTriggered: {
             var now = Date.now() / 1000;
             var start = sessionData.viseme.start;
             var offset = start;
@@ -106,13 +144,17 @@ Item {
                     break;
                 if (now >= offset &&
                         now < start + sessionData.viseme.visemes[i][1])
-                        return Qt.resolvedUrl(
-                            getVisemeImg(sessionData.viseme.visemes[i][0]));
-                offset = start + sessionData.viseme.visemes[i][1];
+                {
+                    smile.visible = false
+                    anim.to = getVisemeWidth(sessionData.viseme.visemes[i][0]);
+                    anim.running = true
+                    offset = start + sessionData.viseme.visemes[i][1];
+                    return
+                }
             }
+            smile.visible = true
             // Outside of span show default smile
-            return Qt.resolvedUrl(getVisemeImg("Smile"));
-	});
-
+            //return Qt.resolvedUrl(getVisemeImg("Smile"));
+        }
     }
 }
