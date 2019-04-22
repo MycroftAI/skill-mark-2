@@ -103,6 +103,7 @@ class Mark2(MycroftSkill):
         self.idle_count = 99
         self.idle_screens = {}
         self.override_idle = None
+        self.respeaker_platform = False
 
         self.hourglass_info = {}
         self.interaction_id = 0
@@ -117,7 +118,13 @@ class Mark2(MycroftSkill):
         self.listener_file = os.path.join(get_ipc_directory(), "mic_level")
         self.st_results = os.stat(self.listener_file)
         self.max_amplitude = 0.001
-
+        
+        # Respeaker Init Pixel Ring
+        if self.config_core.get("enclosure").get("platform") == "mycroft_respeaker":
+            from pixel_ring import pixel_ring
+            self.ring = pixel_ring
+            self.respeaker_platform = True
+    
     def setup_mic_listening(self):
         """ Initializes PyAudio, starts an input stream and launches the
             listening thread.
@@ -400,6 +407,8 @@ class Mark2(MycroftSkill):
 
     def on_handler_mouth_reset(self, message):
         """ Restore viseme to a smile. """
+        if self.respeaker_platform:
+            self.ring.off()
         pass
 
     def on_handler_interactingwithuser(self, message):
@@ -421,6 +430,8 @@ class Mark2(MycroftSkill):
     def on_handler_complete(self, message):
         handler = message.data.get("handler", "")
         # Ignoring handlers from this skill and from the background clock
+        if self.respeaker_platform:
+            self.ring.off()
         if "Mark2" in handler:
             return
         if "TimeSkill.update_display" in handler:
@@ -443,6 +454,8 @@ class Mark2(MycroftSkill):
     # Manage "speaking" visual
 
     def on_handler_speaking(self, message):
+        if self.respeaker_platform:
+            self.ring.speak()
         self.gui["viseme"] = message.data
         if not self.has_show_page and self.gui['state'] != 'speaking':
             self.gui['state'] = 'speaking'
@@ -498,14 +511,22 @@ class Mark2(MycroftSkill):
         # Show listening page
         self.gui['state'] = 'listening'
         self.gui.show_page('all.qml')
+        if self.respeaker_platform:
+            self.ring.trace()
 
     def handle_listener_ended(self, message):
         """ When listening has ended show the thinking animation. """
         self.gui['state'] = 'thinking'
         self.gui.show_page('all.qml')
+        if self.respeaker_platform:
+            self.ring.think()
 
     def handle_failed_stt(self, message):
         # No discernable words were transcribed
+        if self.respeaker_platform:
+            self.ring.mono(0x6C0000)
+            time.sleep(1)
+            self.ring.off()
         pass
 
     #####################################################################
