@@ -42,7 +42,7 @@ Item {
             
             onRunningChanged: {
                 if(successAnimation.status == 1){
-                    triggerEvent("networkConnect.return", {})
+                    triggerGuiEvent("networkConnect.return", {})
                 }
             }
         }    

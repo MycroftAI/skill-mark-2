@@ -51,7 +51,7 @@ Item {
         target: connectedStatus
         onConnectedStatusChanged: {
             if(connectedStatus == 1){
-                triggerEvent("networkConnect.connected", {})
+                triggerGuiEvent("networkConnect.connected", {})
             }
         }
     }
@@ -60,7 +60,7 @@ Item {
         target: disconnectedStatus
         onDisconnectedStatusChanged: {
             if(disconnectedStatus == 1){
-                triggerEvent("networkConnect.failed", {})
+                triggerGuiEvent("networkConnect.failed", {})
             }
         }
     }

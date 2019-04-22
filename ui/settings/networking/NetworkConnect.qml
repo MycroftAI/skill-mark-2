@@ -77,7 +77,7 @@ Item {
                             }
                             
             onAccepted: {
-                 triggerEvent("networkConnect.connecting", {})
+                 triggerGuiEvent("networkConnect.connecting", {})
                  handler.addAndActivateConnection(devicePath, specificPath, passField.text)
             }
         }
@@ -91,7 +91,7 @@ Item {
             text: "Connect"
         
             onClicked: {
-                    triggerEvent("networkConnect.connecting", {})
+                    triggerGuiEvent("networkConnect.connecting", {})
                     handler.addAndActivateConnection(devicePath, specificPath, passField.text)
             }
         }
@@ -136,7 +136,7 @@ Item {
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                triggerEvent("mycroft.device.settings.wireless", {})
+                triggerGuiEvent("mycroft.device.settings.wireless", {})
             }
         }
     }
