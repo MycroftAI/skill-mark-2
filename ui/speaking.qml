@@ -5,7 +5,18 @@ import org.kde.kirigami 2.4 as Kirigami
 
 import Mycroft 1.0 as Mycroft
 
-Item {
+Face {
+    id: root
+
+    eyesOpen: true
+    mouth: speaking ? "" : "Smile.svg"
+    property bool speaking: false
+
+    property var startViseme: sessionData.viseme.start
+    onStartVisemeChanged: {
+        root.speaking = true;
+    }
+
     function getVisemeImg(viseme){
         return "face/" + viseme + ".svg"
     }
@@ -21,118 +32,41 @@ Item {
             case "6": return 90 / 2;
         }
     }
-    Item {
-        id: top_spacing
-        anchors.top: parent.top
-        height: 176
-    }
-    Rectangle {
-        id: eyes
-        anchors.top: top_spacing.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
-        width: parent.width
-        height: 141
-        color: "#00000000"
-        Rectangle {
-            id: rectangle
-            anchors.left: parent.left
-            anchors.leftMargin: 12
-            width: 141
-            color: "#00000000"
-            Image {
-                id: left_eye
-                anchors.horizontalCenter: parent.horizontalCenter
-                y: 0
-                width: 141
-                source: Qt.resolvedUrl("face/Eyeball.svg")
-                fillMode: Image.PreserveAspectFit
-            }
-            Image {
-                id: left_eye_upper
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: 141
-                fillMode: Image.PreserveAspectFit
-                source: Qt.resolvedUrl("face/upper-lid.svg")
-            }
-        } 
-        Rectangle {
-            anchors.right: parent.right
-            anchors.rightMargin: 12
-            id: rectangle2
-            width: 141
-            color: "#00000000"
 
-            Image {
-                id: right_eye
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: 141
-                fillMode: Image.PreserveAspectFit
-                source: Qt.resolvedUrl("face/Eyeball.svg")
-            }
-            Image {
-                id: right_eye_upper
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: 141
-                fillMode: Image.PreserveAspectFit
-                source: Qt.resolvedUrl("face/upper-lid.svg")
-            }
-        }
-    }
-    
-    Item {
-        id: mid_spacing
-        anchors.top: eyes.bottom
-        height: 112
-    }
-
-    Rectangle {
-        id: mouth_rectangle
-        anchors.top: mid_spacing.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
-        width: 266
-        height: 115
-        color: "#00000000"
-    }
     Rectangle {
         id: mouth_viseme
-        anchors.verticalCenter: mouth_rectangle.verticalCenter
-        anchors.horizontalCenter: parent.horizontalCenter
+        visible: root.speaking
+        parent: mouthItem
+        anchors.centerIn: parent
         width: 40
+        onWidthChanged: stopTimer.restart()
         height: width
         radius: width / 2
         color: "black"
         border.color: "white"
         border.width: 20
-    }
-    Rectangle {
-        id: smile
-        anchors.verticalCenter: mouth_rectangle.verticalCenter
-        anchors.horizontalCenter: parent.horizontalCenter
-        color: "black"
-        width: 266
-        height: 100
-        Image {
-            id: smile_img
-            anchors.centerIn: parent
-            anchors.horizontalCenter: parent.horizontalCenter
-            fillMode: Image.PreserveAspectFit
-            width: 266
-            source: Qt.resolvedUrl(getVisemeImg("Smile"))
+        Behavior on width {
+            PropertyAnimation {
+                property: "width"
+                duration: 50
+                easing.type: Easing.InOutQuad
+            }
         }
     }
 
-    PropertyAnimation {
-        id: anim
-        target: mouth_viseme
-        property: "width"
-        to: 40
-        duration: 50
-    }
     Timer {
-	id: tmr
-	interval: 50 // every 50 ms
-	running: true
-	repeat: true
+        id: stopTimer
+        interval: 500
+        onTriggered: {
+            root.speaking = false
+        }
+    }
+
+    Timer {
+        id: tmr
+        interval: 50 // every 50 ms
+        running: root.speaking
+        repeat: true
         onTriggered: {
             var now = Date.now() / 1000;
             var start = sessionData.viseme.start;
@@ -145,14 +79,11 @@ Item {
                 if (now >= offset &&
                         now < start + sessionData.viseme.visemes[i][1])
                 {
-                    smile.visible = false
-                    anim.to = getVisemeWidth(sessionData.viseme.visemes[i][0]);
-                    anim.running = true
+                    mouth_viseme.width = getVisemeWidth(sessionData.viseme.visemes[i][0]);
                     offset = start + sessionData.viseme.visemes[i][1];
                     return
                 }
             }
-            smile.visible = true
             // Outside of span show default smile
             //return Qt.resolvedUrl(getVisemeImg("Smile"));
         }

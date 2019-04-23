@@ -10,11 +10,8 @@ Item {
     id: "thinking"
     LottieAnimation {
         id: thinkingAnimation
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.horizontalCenter: parent.horizontalCenter
-        //Layout.alignment: Qt.AlignHCenter
-        Layout.preferredWidth: 200
-        Layout.preferredHeight: Layout.preferredWidth
+        anchors.centerIn: parent
+        height: Math.min(parent.width, parent.height)
 
         source: Qt.resolvedUrl("face/thinking.json")
 
