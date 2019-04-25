@@ -5,11 +5,9 @@ import org.kde.kirigami 2.4 as Kirigami
 
 import Mycroft 1.0 as Mycroft
 
-Face {
+Item {
     id: root
 
-    eyesOpen: true
-    mouth: speaking ? "" : "Smile.svg"
     property bool speaking: false
 
     property var startViseme: sessionData.viseme.start
@@ -36,7 +34,7 @@ Face {
     Rectangle {
         id: mouth_viseme
         visible: root.speaking
-        parent: mouthItem
+        parent: root
         anchors.centerIn: parent
         width: 40
         onWidthChanged: stopTimer.restart()
