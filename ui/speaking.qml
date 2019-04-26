@@ -9,6 +9,7 @@ Item {
     id: root
 
     property bool speaking: false
+    property int ref_size: Math.min(root.width, root.height) / 2
 
     property var startViseme: sessionData.viseme.start
     onStartVisemeChanged: {
@@ -21,13 +22,13 @@ Item {
 
     function getVisemeWidth(viseme){
         switch (viseme) {
-            case "0": return 290 / 2;
-            case "1": return 130 / 2;
-            case "2": return 250 / 2;
-            case "3": return 170 / 2;
-            case "4": return 60 / 2;
-            case "5": return 110 / 2;
-            case "6": return 90 / 2;
+            case "0": return ref_size;
+            case "1": return 13 / 29 * ref_size;
+            case "2": return 25 / 29 * ref_size;
+            case "3": return 17 / 29 * ref_size;
+            case "4": return 6 / 29 * ref_size;
+            case "5": return 11 / 29 * ref_size;
+            case "6": return 9 / 29 * ref_size;
         }
     }
 
@@ -42,7 +43,7 @@ Item {
         radius: width / 2
         color: "black"
         border.color: "white"
-        border.width: 20
+        border.width: 20 / 290 * ref_size
         Behavior on width {
             PropertyAnimation {
                 property: "width"
