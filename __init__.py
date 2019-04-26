@@ -287,7 +287,7 @@ class Mark2(MycroftSkill):
 
     def on_volume_get(self, message):
         self.bus.emit(message.response(data={"percent": self.volume,
-                                             "muted": self.muted})
+                                             "muted": self.muted}))
 
     def on_volume_duck(self, message):
         self.muted = True
