@@ -298,8 +298,8 @@ class Mark2(MycroftSkill):
         self.set_hardware_volume(self.volume)
 
     def set_hardware_volume(self, pct):
-        # Set the volume on hardware (which support levels 0-63)
-        self.sudo("/usr/sbin/i2cset -y 3 0x4b {}".format(int(63*vol)))
+        # Set the volume on hardware (which supports levels 0-63)
+        self.sudo("/usr/sbin/i2cset -y 3 0x4b {}".format(int(63*pct)))
 
     def get_hardware_volume(self):
         # Get the volume from hardware
