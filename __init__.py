@@ -261,17 +261,12 @@ class Mark2(MycroftSkill):
     ###################################################################
     ## System events
 
-    def sudo(self, cmd):
-        if not isinstance(cmd, list):
-            cmd = cmd.split()
-        return subprocess.call(["/usr/bin/sudo"] + cmd)
-
     def handle_system_reboot(self, message):
         self.speak_dialog("rebooting", wait=True)
-        self.sudo("/usr/sbin/shutdown --reboot now")
+        subprocess.call(["/usr/bin/systemctl", "reboot"])
 
     def handle_system_shutdown(self, message):
-        self.sudo("/usr/sbin/shutdown --poweroff now")
+        subprocess.call(["/usr/bin/systemctl", "poweroff"])
 
     ###################################################################
     ## System volume
@@ -299,7 +294,12 @@ class Mark2(MycroftSkill):
 
     def set_hardware_volume(self, pct):
         # Set the volume on hardware (which supports levels 0-63)
-        self.sudo("/usr/sbin/i2cset -y 3 0x4b {}".format(int(63*pct)))
+        subprocess.call(["/usr/bin/i2cset",
+                         "-y",               # force a write
+                         "3",                # the i2c bus number
+                         "0x4b",             # the stereo amp device address
+                         str(int(63*pct))])  # volume level, 0-63
+
 
     def get_hardware_volume(self):
         # Get the volume from hardware
