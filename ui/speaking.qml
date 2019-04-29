@@ -5,12 +5,11 @@ import org.kde.kirigami 2.4 as Kirigami
 
 import Mycroft 1.0 as Mycroft
 
-Face {
+Item {
     id: root
 
-    eyesOpen: true
-    mouth: speaking ? "" : "Smile.svg"
     property bool speaking: false
+    property int ref_size: Math.min(root.width, root.height) / 2
 
     property var startViseme: sessionData.viseme.start
     onStartVisemeChanged: {
@@ -23,20 +22,20 @@ Face {
 
     function getVisemeWidth(viseme){
         switch (viseme) {
-            case "0": return 290 / 2;
-            case "1": return 130 / 2;
-            case "2": return 250 / 2;
-            case "3": return 170 / 2;
-            case "4": return 60 / 2;
-            case "5": return 110 / 2;
-            case "6": return 90 / 2;
+            case "0": return ref_size;
+            case "1": return 13 / 29 * ref_size;
+            case "2": return 25 / 29 * ref_size;
+            case "3": return 17 / 29 * ref_size;
+            case "4": return 6 / 29 * ref_size;
+            case "5": return 11 / 29 * ref_size;
+            case "6": return 9 / 29 * ref_size;
         }
     }
 
     Rectangle {
         id: mouth_viseme
         visible: root.speaking
-        parent: mouthItem
+        parent: root
         anchors.centerIn: parent
         width: 40
         onWidthChanged: stopTimer.restart()
@@ -44,7 +43,7 @@ Face {
         radius: width / 2
         color: "black"
         border.color: "white"
-        border.width: 20
+        border.width: 20 / 290 * ref_size
         Behavior on width {
             PropertyAnimation {
                 property: "width"
@@ -73,7 +72,7 @@ Face {
             var offset = start;
             // Compare viseme start/stop with current time and choose viseme
             // appropriately
-            for (var i = 0; i < sessionData.viseme.visemes.length; i+=2) {
+            for (var i = 0; i < sessionData.viseme.visemes.length; i++) {
                 if (sessionData.viseme.start == 0)
                     break;
                 if (now >= offset &&
