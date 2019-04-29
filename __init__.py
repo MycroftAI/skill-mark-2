@@ -294,24 +294,29 @@ class Mark2(MycroftSkill):
 
     def set_hardware_volume(self, pct):
         # Set the volume on hardware (which supports levels 0-63)
-        subprocess.call(["/usr/bin/i2cset",
-                         "-y",               # force a write
-                         "3",                # the i2c bus number
-                         "0x4b",             # the stereo amp device address
-                         str(int(63*pct))])  # volume level, 0-63
-
+        try:
+            subprocess.call(["/usr/bin/i2cset",
+                             "-y",               # force a write
+                             "3",                # the i2c bus number
+                             "0x4b",             # the stereo amp device address
+                             str(int(63*pct))])  # volume level, 0-63
+        except Exception as e:
+            log.error('Couldn\'t set volume. ({})'.format(e))
 
     def get_hardware_volume(self):
         # Get the volume from hardware
-        vol = subprocess.check_output(["/usr/sbin/i2cget", "-y", "3", "0x4b"])
         try:
+            vol = subprocess.check_output(["/usr/sbin/i2cget", "-y",
+                                           "3", "0x4b"])
             # Convert the returned hex value from i2cget
             i = int(vol, 16)
             i = 0 if i < 0 else i
             i = 63 if i > 63 else i
             self.volume = i / 63.0
-        except:
-            self.log.info("UNEXPECTED VOLUME RESULT:  "+str(vol))
+        except subprocess.CalledProcessError as e:
+            self.log.info("I2C Communication error:  {}".format(repr(e)))
+        except Exception:
+            self.log.info("UNEXPECTED VOLUME RESULT:  {}".format(vol))
 
     ###################################################################
     ## Idle screen mechanism
