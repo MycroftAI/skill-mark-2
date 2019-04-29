@@ -27,6 +27,7 @@ from mycroft.audio import wait_while_speaking
 from mycroft import intent_file_handler
 
 import os
+import subprocess
 
 import pyaudio
 import struct
@@ -118,6 +119,11 @@ class Mark2(MycroftSkill):
         self.st_results = os.stat(self.listener_file)
         self.max_amplitude = 0.001
 
+        # System volume
+        self.volume = 0.5
+        self.muted = False
+        self.get_hardware_volume()       # read from the device
+
     def setup_mic_listening(self):
         """ Initializes PyAudio, starts an input stream and launches the
             listening thread.
@@ -192,41 +198,51 @@ class Mark2(MycroftSkill):
             self.bus.on('mycroft.skills.initialized', self.reset_face)
             self.bus.on('mycroft.mark2.register_idle',
                         self.on_register_idle)
-            
+
             # Handle device settings events
-            self.add_event('mycroft.device.settings', 
+            self.add_event('mycroft.device.settings',
                            self.handle_device_settings) #Use Legacy for QuickSetting delegate
-            self.gui.register_handler('mycroft.device.settings', 
+            self.gui.register_handler('mycroft.device.settings',
                                       self.handle_device_settings)
-            self.gui.register_handler('mycroft.device.settings.brightness', 
+            self.gui.register_handler('mycroft.device.settings.brightness',
                                       self.handle_device_brightness_settings)
-            self.gui.register_handler('mycroft.device.settings.homescreen', 
+            self.gui.register_handler('mycroft.device.settings.homescreen',
                                       self.handle_device_homescreen_settings)
-            self.gui.register_handler('mycroft.device.settings.ssh', 
+            self.gui.register_handler('mycroft.device.settings.ssh',
                                       self.handle_device_ssh_settings)
-            self.gui.register_handler('mycroft.device.settings.reset', 
+            self.gui.register_handler('mycroft.device.settings.reset',
                                       self.handle_device_factory_reset_settings)
-            self.gui.register_handler('mycroft.device.settings.update', 
+            self.gui.register_handler('mycroft.device.settings.update',
                                       self.handle_device_update_settings)
-            self.gui.register_handler('mycroft.device.settings.restart', 
+            self.gui.register_handler('mycroft.device.settings.restart',
                                       self.handle_device_restart_action)
-            self.gui.register_handler('mycroft.device.settings.poweroff', 
+            self.gui.register_handler('mycroft.device.settings.poweroff',
                             self.handle_device_poweroff_action)
-            self.gui.register_handler('mycroft.device.settings.wireless', 
+            self.gui.register_handler('mycroft.device.settings.wireless',
                                       self.handle_show_wifi_screen_intent)
             self.gui.register_handler('mycroft.device.show.idle', self.show_idle_screen)
 
             # Handle networking events sequence
-            self.gui.register_handler('networkConnect.wifi', 
+            self.gui.register_handler('networkConnect.wifi',
                                       self.handle_show_wifi_pass_screen_intent)
-            self.gui.register_handler('networkConnect.connecting', 
+            self.gui.register_handler('networkConnect.connecting',
                                       self.handle_show_network_connecting_screen_intent)
-            self.gui.register_handler('networkConnect.connected', 
+            self.gui.register_handler('networkConnect.connected',
                                       self.handle_show_network_connected_screen_intent)
-            self.gui.register_handler('networkConnect.failed', 
+            self.gui.register_handler('networkConnect.failed',
                                       self.handle_show_network_fail_screen_intent)
-            self.gui.register_handler('networkConnect.return', 
+            self.gui.register_handler('networkConnect.return',
                                       self.handle_return_to_networkselection)
+
+            # System events
+            self.add_event('system.reboot', self.handle_system_reboot)
+            self.add_event('system.shutdown', self.handle_system_shutdown)
+
+            # Handle volume setting via I2C
+            self.add_event('mycroft.volume.set', self.on_volume_set)
+            self.add_event('mycroft.volume.get', self.on_volume_get)
+            self.add_event('mycroft.volume.duck', self.on_volume_duck)
+            self.add_event('mycroft.volume.unduck', self.on_volume_unduck)
 
             # Show sleeping face while starting up skills.
             self.gui['state'] = 'resting'
@@ -235,12 +251,70 @@ class Mark2(MycroftSkill):
             # Collect Idle screens and display if skill is restarted
             self.collect_resting_screens()
         except Exception:
-            LOG.exception('In Mark 1 Skill')
+            LOG.exception('In Mark 2 Skill')
 
         # Update use of wake-up beep
         self._sync_wake_beep_setting()
 
         self.settings.set_changed_callback(self.on_websettings_changed)
+
+    ###################################################################
+    ## System events
+
+    def handle_system_reboot(self, message):
+        self.speak_dialog("rebooting", wait=True)
+        subprocess.call(["/usr/bin/systemctl", "reboot"])
+
+    def handle_system_shutdown(self, message):
+        subprocess.call(["/usr/bin/systemctl", "poweroff"])
+
+    ###################################################################
+    ## System volume
+
+    def on_volume_set(self, message):
+        # Force vol between 0.0 and 1.0
+        vol = message.data.get("percent", 0.5)
+        vol = 0.0 if vol < 0.0 else vol
+        vol = 1.0 if vol > 1.0 else vol
+        self.volume = vol
+        self.muted = False
+        self.set_hardware_volume(vol)
+
+    def on_volume_get(self, message):
+        self.bus.emit(message.response(data={"percent": self.volume,
+                                             "muted": self.muted}))
+
+    def on_volume_duck(self, message):
+        self.muted = True
+        self.set_hardware_volume(0)
+
+    def on_volume_unduck(self, message):
+        self.muted = False
+        self.set_hardware_volume(self.volume)
+
+    def set_hardware_volume(self, pct):
+        # Set the volume on hardware (which supports levels 0-63)
+        subprocess.call(["/usr/bin/i2cset",
+                         "-y",               # force a write
+                         "3",                # the i2c bus number
+                         "0x4b",             # the stereo amp device address
+                         str(int(63*pct))])  # volume level, 0-63
+
+
+    def get_hardware_volume(self):
+        # Get the volume from hardware
+        vol = subprocess.check_output(["/usr/sbin/i2cget", "-y", "3", "0x4b"])
+        try:
+            # Convert the returned hex value from i2cget
+            i = int(vol, 16)
+            i = 0 if i < 0 else i
+            i = 63 if i > 63 else i
+            self.volume = i / 63.0
+        except:
+            self.log.info("UNEXPECTED VOLUME RESULT:  "+str(vol))
+
+    ###################################################################
+    ## Idle screen mechanism
 
     def save_resting_screen(self):
         """ Handler to be called if the settings are changed by
@@ -720,24 +794,24 @@ class Mark2(MycroftSkill):
 
     #####################################################################
     # Device Settings
-    
+
     @intent_file_handler('device.settings.intent')
     def handle_device_settings(self, message):
-        """ 
+        """
             display device settings page
         """
         self.gui['state'] = 'settings/settingspage'
         self.gui.show_page('all.qml')
-        
+
     @intent_file_handler('device.wifi.settings.intent')
     def handle_show_wifi_screen_intent(self, message):
-        """ 
+        """
             display network selection page
         """
         self.gui.clear()
         self.gui['state'] = "settings/networking/SelectNetwork"
         self.gui.show_page('all.qml')
-    
+
     @intent_file_handler('device.brightness.settings.intent')
     def handle_device_brightness_settings(self, message):
         """
@@ -745,7 +819,7 @@ class Mark2(MycroftSkill):
         """
         self.gui['state'] = 'settings/brightness_settings'
         self.gui.show_page('all.qml')
-        
+
     @intent_file_handler('device.homescreen.settings.intent')
     def handle_device_homescreen_settings(self, message):
         """
@@ -756,7 +830,7 @@ class Mark2(MycroftSkill):
         self.gui['idleScreenList'] = {'screenBlob': screens}
         self.gui['state'] = 'settings/homescreen_settings'
         self.gui.show_page('all.qml')
-        
+
     @intent_file_handler('device.ssh.settings.intent')
     def handle_device_ssh_settings(self, message):
         """
@@ -772,14 +846,14 @@ class Mark2(MycroftSkill):
         """
         self.gui['state'] = 'settings/factoryreset_settings'
         self.gui.show_page('all.qml')
-        
+
     def handle_device_update_settings(self, message):
         """
             display device update settings page
         """
         self.gui['state'] = 'settings/updatedevice_settings'
         self.gui.show_page('all.qml')
-        
+
     def handle_device_restart_action(self, message):
         """
             device restart action
@@ -791,12 +865,12 @@ class Mark2(MycroftSkill):
             device poweroff action
         """
         print("PlaceholderShutdownAction")
-        
+
     #####################################################################
     # Device Networking Settings
-        
+
     def handle_show_wifi_pass_screen_intent(self, message):
-        """ 
+        """
             display network setup page
         """
         self.gui['state'] = "settings/networking/NetworkConnect"
@@ -805,28 +879,28 @@ class Mark2(MycroftSkill):
         self.gui["SecurityType"] = message.data["SecurityType"]
         self.gui["DevicePath"] = message.data["DevicePath"]
         self.gui["SpecificPath"] = message.data["SpecificPath"]
-    
+
     def handle_show_network_connecting_screen_intent(self, message):
         """
             display network connecting state
         """
         self.gui['state'] = "settings/networking/Connecting"
         self.gui.show_page("all.qml")
-    
+
     def handle_show_network_connected_screen_intent(self, message):
         """
             display network connected state
         """
         self.gui['state'] = "settings/networking/Success"
         self.gui.show_page("all.qml")
-    
+
     def handle_show_network_fail_screen_intent(self, message):
         """
             display network failed state
         """
         self.gui['state'] = "settings/networking/Fail"
         self.gui.show_page("all.qml")
-        
+
     def handle_return_to_networkselection(self):
         """
             return to network selection on failure
