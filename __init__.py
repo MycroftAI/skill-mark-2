@@ -295,7 +295,7 @@ class Mark2(MycroftSkill):
     def set_hardware_volume(self, pct):
         # Set the volume on hardware (which supports levels 0-63)
         try:
-            subprocess.call(["/usr/bin/i2cset",
+            subprocess.call(["/usr/sbin/i2cset",
                              "-y",               # force a write
                              "3",                # the i2c bus number
                              "0x4b",             # the stereo amp device address
