@@ -6,6 +6,10 @@ import org.kde.kirigami 2.4 as Kirigami
 import Mycroft 1.0 as Mycroft
 
 Item {
+    id: root
+
+    property var volume: sessionData.volume
+
     function getOpacity(volume) {
         if (volume < 2)
             return 0.7;
@@ -25,110 +29,32 @@ Item {
             val = 15;
         return 36 + 36 * val;
     }
-    property var volume: sessionData.volume
 
-    onVolumeChanged: {
-        af11.running = true
-        af12.running = true
-        af13.running = true
-        af14.running = true
-        af15.running = true
-    }
-    PropertyAnimation {
-        id: af11
-        target: f11
-        property: "height"
-        to: getLength(sessionData.volume, (0.5))
-        duration: 50
-    }
-    PropertyAnimation {
-        id: af12
-        target: f12
-        property: "height"
-        to: getLength(sessionData.volume, 0.75)
-        duration: 50
-    }
-    PropertyAnimation {
-        id: af13
-        target: f13
-        property: "height"
-        to: getLength(sessionData.volume, 1)
-        duration: 50
-    }
-    PropertyAnimation {
-        id: af14
-        target: f14
-        property: "height"
-        to: getLength(sessionData.volume, 0.75)
-        duration: 50
-    }
-    PropertyAnimation {
-        id: af15
-        target: f15
-        property: "height"
-        to: getLength(sessionData.volume, 0.5)
-        duration: 50
-    }
 
-    ColumnLayout {
-        id: grid
-        width: parent.width
-	height: parent.height
-        spacing: Kirigami.Units.largeSpacing
+    RowLayout {
+        id: frame1
+        anchors.centerIn: parent
+        //Spacing is faked by items black space
+        spacing: 0
+        // Dynamic sizing of 4/6 of the screen size
+        width: Math.min(root.width, root.height)/6 * 4
+        height: width
+        visible: true
 
-        Item {
-            height: Kirigami.Units.largeSpacing * 5
+        VolumeBar {
+            strength: 0.5
         }
-        RowLayout {
-            id: frame1
-            visible: true
-	height: parent.height
-            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                VolumeBar {
-                    id: f11
-                    opacity: getOpacity(sessionData.volume)
-                }
-            }
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                VolumeBar {
-                    id: f12
-                    opacity: getOpacity(sessionData.volume)
-                }
-            }
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                VolumeBar {
-                    id: f13
-                    opacity: getOpacity(sessionData.volume)
-                }
-            }
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                VolumeBar {
-                    id: f14
-                    opacity: getOpacity(sessionData.volume)
-                }
-            }
-            Rectangle {
-                height: 600
-                width: 60
-                color: "#00000000"
-                VolumeBar {
-                    id: f15
-                    opacity: getOpacity(sessionData.volume)
-                }
-            }
+        VolumeBar {
+            strength: 0.75
+        }
+        VolumeBar {
+            strength: 1
+        }
+        VolumeBar {
+            strength: 0.75
+        }
+        VolumeBar {
+            strength: 0.5
         }
     }
 }
