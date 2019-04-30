@@ -26,9 +26,22 @@ Item {
     id: homeScreenSettingsView
     anchors.fill: parent
     property var modelItemList: mainLoaderView.idleScreenList
+    property var activeIdle: mainLoaderView.activeIdle
+    
+    ButtonGroup {
+        id: idleSelectionGroup
+    }
     
     onModelItemListChanged: {
        listIdleFaces.model = modelItemList.screenBlob
+    }
+    
+    function checkIfActive(screenName){
+        if(screenName == activeIdle) {
+            return true
+        } else {
+            return false
+        }
     }
     
     Item {
@@ -39,7 +52,7 @@ Item {
         height: Kirigami.Units.gridUnit * 2
         
         Kirigami.Heading {
-            id: brightnessSettingPageTextHeading
+            id: idleSettingPageTextHeading
             level: 1
             wrapMode: Text.WordWrap
             anchors.centerIn: parent
@@ -94,7 +107,7 @@ Item {
                                 Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
                                 Layout.preferredHeight: units.iconSizes.medium
                                 Layout.preferredWidth: units.iconSizes.medium
-                                visible: model.activeFace
+                                visible: checkIfActive(modelData.screenName)
                                 source: "answer"
                             }
                         }
@@ -102,9 +115,7 @@ Item {
                 }
                 
                 onClicked: {
-                    console.log(modelData.screenName)
-                    sessionData.selected = modelData.screenName
-                    model.activeFace = true // triggerEvent("device.activate.face", {"skillID": "idleFace"}) Requires API Logic
+                    triggerGuiEvent("mycroft.device.set.idle", {"selected": modelData.screenName})
                 }
             }
             
