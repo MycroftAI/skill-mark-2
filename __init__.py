@@ -204,8 +204,6 @@ class Mark2(MycroftSkill):
                            self.handle_device_settings) #Use Legacy for QuickSetting delegate
             self.gui.register_handler('mycroft.device.settings',
                                       self.handle_device_settings)
-            self.gui.register_handler('mycroft.device.settings.brightness',
-                                      self.handle_device_brightness_settings)
             self.gui.register_handler('mycroft.device.settings.homescreen',
                                       self.handle_device_homescreen_settings)
             self.gui.register_handler('mycroft.device.settings.ssh',
@@ -222,17 +220,9 @@ class Mark2(MycroftSkill):
                                       self.handle_show_wifi_screen_intent)
             self.gui.register_handler('mycroft.device.show.idle', self.show_idle_screen)
 
-            # Handle networking events sequence
-            self.gui.register_handler('networkConnect.wifi',
-                                      self.handle_show_wifi_pass_screen_intent)
-            self.gui.register_handler('networkConnect.connecting',
-                                      self.handle_show_network_connecting_screen_intent)
-            self.gui.register_handler('networkConnect.connected',
-                                      self.handle_show_network_connected_screen_intent)
-            self.gui.register_handler('networkConnect.failed',
-                                      self.handle_show_network_fail_screen_intent)
-            self.gui.register_handler('networkConnect.return',
-                                      self.handle_return_to_networkselection)
+
+            # Handle idle selection
+            self.gui.register_handler('mycroft.device.set.idle', self.set_idle_screen)
 
             # System events
             self.add_event('system.reboot', self.handle_system_reboot)
@@ -329,6 +319,7 @@ class Mark2(MycroftSkill):
         """
         self.log.debug("Saving resting screen")
         self.settings['selected'] = self.gui['selected']
+        self.gui['selectedScreen'] = self.gui['selected']
 
     def collect_resting_screens(self):
         """ Trigger collection and then show the resting screen. """
@@ -817,14 +808,6 @@ class Mark2(MycroftSkill):
         self.gui['state'] = "settings/networking/SelectNetwork"
         self.gui.show_page('all.qml')
 
-    @intent_file_handler('device.brightness.settings.intent')
-    def handle_device_brightness_settings(self, message):
-        """
-            display brightness settings page
-        """
-        self.gui['state'] = 'settings/brightness_settings'
-        self.gui.show_page('all.qml')
-
     @intent_file_handler('device.homescreen.settings.intent')
     def handle_device_homescreen_settings(self, message):
         """
@@ -833,6 +816,7 @@ class Mark2(MycroftSkill):
         screens = [{"screenName": s, "screenID": self.idle_screens[s]}
                    for s in self.idle_screens]
         self.gui['idleScreenList'] = {'screenBlob': screens}
+        self.gui['selectedScreen'] = self.gui['selected']
         self.gui['state'] = 'settings/homescreen_settings'
         self.gui.show_page('all.qml')
 
@@ -851,6 +835,10 @@ class Mark2(MycroftSkill):
         """
         self.gui['state'] = 'settings/factoryreset_settings'
         self.gui.show_page('all.qml')
+        
+    def set_idle_screen(self, message):
+        self.gui['selected'] = message.data["selected"]
+        self.save_resting_screen()
 
     def handle_device_update_settings(self, message):
         """
@@ -870,49 +858,6 @@ class Mark2(MycroftSkill):
             device poweroff action
         """
         print("PlaceholderShutdownAction")
-
-    #####################################################################
-    # Device Networking Settings
-
-    def handle_show_wifi_pass_screen_intent(self, message):
-        """
-            display network setup page
-        """
-        self.gui['state'] = "settings/networking/NetworkConnect"
-        self.gui.show_page('all.qml')
-        self.gui["ConnectionName"] = message.data["ConnectionName"]
-        self.gui["SecurityType"] = message.data["SecurityType"]
-        self.gui["DevicePath"] = message.data["DevicePath"]
-        self.gui["SpecificPath"] = message.data["SpecificPath"]
-
-    def handle_show_network_connecting_screen_intent(self, message):
-        """
-            display network connecting state
-        """
-        self.gui['state'] = "settings/networking/Connecting"
-        self.gui.show_page("all.qml")
-
-    def handle_show_network_connected_screen_intent(self, message):
-        """
-            display network connected state
-        """
-        self.gui['state'] = "settings/networking/Success"
-        self.gui.show_page("all.qml")
-
-    def handle_show_network_fail_screen_intent(self, message):
-        """
-            display network failed state
-        """
-        self.gui['state'] = "settings/networking/Fail"
-        self.gui.show_page("all.qml")
-
-    def handle_return_to_networkselection(self):
-        """
-            return to network selection on failure
-        """
-        self.gui['state'] = "settings/networking/SelectNetwork"
-        self.gui.show_page("all.qml")
-
 
 def create_skill():
     return Mark2()
