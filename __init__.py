@@ -516,8 +516,9 @@ class Mark2(MycroftSkill):
     # Manage "speaking" visual
 
     def on_handler_speaking(self, message):
+        self.log.info("VISEMES")
         self.gui["viseme"] = message.data
-        if not self.has_show_page and self.gui['state'] != 'speaking':
+        if not self.has_show_page:
             self.gui['state'] = 'speaking'
             self.gui.show_page("all.qml")
             # Show idle screen after the visemes are done (+ 2 sec).
