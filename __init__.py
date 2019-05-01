@@ -32,7 +32,7 @@ import subprocess
 import pyaudio
 import struct
 import math
-from threading import Thread
+from threading import Thread, Lock
 
 FORMAT = pyaudio.paInt16
 SHORT_NORMALIZE = (1.0/32768.0)
@@ -101,9 +101,10 @@ class Mark2(MycroftSkill):
     def __init__(self):
         super().__init__("Mark2")
 
-        self.idle_count = 99
         self.idle_screens = {}
         self.override_idle = None
+        self.idle_next = 0 # Next time the idle screen should trigger
+        self.idle_lock = Lock()
 
         self.hourglass_info = {}
         self.interaction_id = 0
@@ -164,8 +165,6 @@ class Mark2(MycroftSkill):
                            self.handle_listener_ended)
             self.add_event('mycroft.speech.recognition.unknown',
                            self.handle_failed_stt)
-
-            self.start_idle_check()
 
             # Handle the 'busy' visual
             self.bus.on('mycroft.skill.handler.start',
@@ -324,7 +323,7 @@ class Mark2(MycroftSkill):
     def collect_resting_screens(self):
         """ Trigger collection and then show the resting screen. """
         self.bus.emit(Message('mycroft.mark2.collect_idle'))
-        time.sleep(0.1)
+        time.sleep(1)
         self.show_idle_screen()
 
     def on_register_idle(self, message):
@@ -453,7 +452,9 @@ class Mark2(MycroftSkill):
             # self.gui.show_page("thinking.qml")
 
     def on_gui_page_interaction(self, message):
-        self.idle_count = 0
+        """ Reset idle timer to 30 seconds when page is flipped. """
+        self.log.info("Resetting idle counter to 30 seconds")
+        self.start_idle_event(30)
 
     def on_gui_page_show(self, message):
         if "mark-2" not in message.data.get("__from", ""):
@@ -464,9 +465,11 @@ class Mark2(MycroftSkill):
             override_idle = message.data.get('__idle')
             if override_idle is not None:
                 self.log.debug("cancelling idle")
-                self.cancel_scheduled_event('IdleCheck')
-                self.idle_count = 0
+                self.cancel_idle_event()
                 self.override_idle = (message, time.monotonic())
+            elif (message.data['page'] and
+                    not message.data['page'][0].endswith('idle.qml')):
+                self.start_idle_event(30)
 
     def on_handler_mouth_reset(self, message):
         """ Restore viseme to a smile. """
@@ -517,39 +520,52 @@ class Mark2(MycroftSkill):
         if not self.has_show_page and self.gui['state'] != 'speaking':
             self.gui['state'] = 'speaking'
             self.gui.show_page("all.qml")
+            # Show idle screen after the visemes are done (+ 2 sec).
+            time = message.data['visemes'][-1][1] + 3
+            self.start_idle_event(time)
 
     #####################################################################
     # Manage "idle" visual state
-
-    def start_idle_check(self):
-        # Clear any existing checker
+    def cancel_idle_event(self):
+        self.idle_next = 0
         self.cancel_scheduled_event('IdleCheck')
-        self.idle_count = 0
 
-        # Schedule a check every few seconds
-        self.schedule_repeating_event(self.check_for_idle, None,
-                                      Mark2.IDLE_CHECK_FREQUENCY,
-                                      name='IdleCheck')
+    def start_idle_event(self, offset=60, weak=False):
+        """ Start an event for showing the idle screen.
 
-    def check_for_idle(self):
-        # No activity, start to fall asleep
-        self.idle_count += 1
+        Arguments:
+            offset: How long until the idle screen should be shown
+            weak: set to true if the time should be able to be overridden
+        """
+        with self.idle_lock:
+            if time.monotonic() + offset < self.idle_next:
+                self.log.info('No update, before next time')
+                return
 
-        if self.idle_count == 5:
-            # Go into a 'sleep' visual state
-            self.show_idle_screen()
-        elif self.idle_count > 5:
-            self.cancel_scheduled_event('IdleCheck')
+            self.log.info('Starting idle event')
+            try:
+                if not weak:
+                    self.idle_next = time.monotonic() + offset
+                # Clear any existing checker
+                self.cancel_scheduled_event('IdleCheck')
+                time.sleep(0.5)
+                self.schedule_event(self.show_idle_screen, int(offset),
+                                    name='IdleCheck')
+                self.log.info('Showing idle screen in '
+                              '{} seconds'.format(offset))
+            except Exception as e:
+                self.log.exception(repr(e))
 
     def show_idle_screen(self):
         """ Show the idle screen or return to the skill that's overriding idle.
         """
+        self.log.debug('Showing idle screen')
         screen = None
         if self.override_idle:
             self.log.debug("Returning to override")
             # Restore the page overriding idle instead of the normal idle
             self.bus.emit(self.override_idle[0])
-        elif len(self.idle_screens) > 0:
+        elif len(self.idle_screens) > 0 and 'selected' in self.gui:
             # TODO remove hard coded value
             self.log.debug('Showing Idle screen for '
                            '{}'.format(self.gui['selected']))
@@ -563,7 +579,7 @@ class Mark2(MycroftSkill):
             Starts countdown to show the idle page.
         """
         # Start idle timer
-        self.start_idle_check()
+        self.start_idle_event(weak=True)
 
         # Show listening page
         self.gui['state'] = 'listening'
@@ -851,13 +867,13 @@ class Mark2(MycroftSkill):
         """
             device restart action
         """
-        print("PlaceholderRestartAction")
+        self.log.info("PlaceholderRestartAction")
 
     def handle_device_poweroff_action(self, message):
         """
             device poweroff action
         """
-        print("PlaceholderShutdownAction")
+        self.log.info("PlaceholderShutdownAction")
 
 def create_skill():
     return Mark2()
