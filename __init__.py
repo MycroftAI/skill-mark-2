@@ -582,6 +582,11 @@ class Mark2(MycroftSkill):
         # Start idle timer
         self.start_idle_event(weak=True)
 
+        # Lower the max by half at the start of listener to make sure
+        # loud noices doesn't make the level stick to much
+        if self.max_amplitude > 0.001:
+            self.max_amplitude /= 2
+
         # Show listening page
         self.gui['state'] = 'listening'
         self.gui.show_page('all.qml')
