@@ -233,8 +233,8 @@ class Mark2(MycroftSkill):
             self.add_event('mycroft.volume.duck', self.on_volume_duck)
             self.add_event('mycroft.volume.unduck', self.on_volume_unduck)
 
-            # Show sleeping face while starting up skills.
-            self.gui['state'] = 'resting'
+            # Show loading screen while starting up skills.
+            self.gui['state'] = 'loading'
             self.gui.show_page('all.qml')
 
             # Collect Idle screens and display if skill is restarted
@@ -283,6 +283,7 @@ class Mark2(MycroftSkill):
 
     def set_hardware_volume(self, pct):
         # Set the volume on hardware (which supports levels 0-63)
+        self.log.debug("Setting hardware volume to: ".format(pct))
         try:
             subprocess.call(["/usr/sbin/i2cset",
                              "-y",               # force a write
@@ -598,7 +599,7 @@ class Mark2(MycroftSkill):
 
     def handle_failed_stt(self, message):
         # No discernable words were transcribed
-        pass
+        self.show_idle_screen()
 
     #####################################################################
     # Manage network connction feedback
