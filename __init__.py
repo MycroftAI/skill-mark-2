@@ -20,7 +20,7 @@ from datetime import datetime
 
 from mycroft.messagebus.message import Message
 from mycroft.skills.core import MycroftSkill
-from mycroft.util import connected, find_input_device, get_ipc_directory
+from mycroft.util import connected, get_ipc_directory
 from mycroft.util.log import LOG
 from mycroft.util.parse import normalize
 from mycroft.audio import wait_while_speaking
@@ -30,68 +30,10 @@ import os
 import subprocess
 
 import pyaudio
-import struct
-import math
 from threading import Thread, Lock
 
-FORMAT = pyaudio.paInt16
-SHORT_NORMALIZE = (1.0/32768.0)
-CHANNELS = 2
-RATE = 44100
-INPUT_BLOCK_TIME = 0.05
-INPUT_FRAMES_PER_BLOCK = int(RATE*INPUT_BLOCK_TIME)
-
-def get_rms(block):
-    """ RMS amplitude is defined as the square root of the
-    mean over time of the square of the amplitude.
-     so we need to convert this string of bytes into
-     a string of 16-bit samples...
-    """
-    # we will get one short out for each
-    # two chars in the string.
-    count = len(block) / 2
-    format = "%dh" % (count)
-    shorts = struct.unpack(format, block)
-
-    # iterate over the block.
-    sum_squares = 0.0
-    for sample in shorts:
-        # sample is a signed short in +/- 32768.
-        # normalize it to 1.0
-        n = sample * SHORT_NORMALIZE
-        sum_squares += n * n
-
-    return math.sqrt(sum_squares / count)
-
-
-def open_mic_stream(pa, device_index, device_name):
-    """ Open microphone stream from first best microphone device. """
-    if not device_index and device_name:
-        device_index = find_input_device(device_name)
-
-    stream = pa.open(format=FORMAT, channels=CHANNELS, rate=RATE,
-                     input=True, input_device_index=device_index,
-                     frames_per_buffer=INPUT_FRAMES_PER_BLOCK)
-
-    return stream
-
-
-def read_file_from(filename, bytefrom):
-    """ Read listener level from offset. """
-    with open(filename, 'r') as fh:
-        meter_cur = None
-        fh.seek(bytefrom)
-        while True:
-            line = fh.readline()
-            if line == "":
-                break
-
-            # Just adjust meter settings
-            # Ex:Energy:  cur=4 thresh=1.5
-            parts = line.split("=")
-            meter_thresh = float(parts[-1])
-            meter_cur = float(parts[-2].split(" ")[0])
-        return meter_cur
+from .listener import (get_rms, open_mic_stream, read_file_from,
+                       INPUT_FRAMES_PER_BLOCK)
 
 
 class Mark2(MycroftSkill):
@@ -99,7 +41,7 @@ class Mark2(MycroftSkill):
     IDLE_CHECK_FREQUENCY = 6  # in seconds
 
     def __init__(self):
-        super().__init__("Mark2")
+        super().__init__('Mark2')
 
         self.idle_screens = {}
         self.override_idle = None
@@ -116,7 +58,7 @@ class Mark2(MycroftSkill):
 
         # Volume indicatior
         self.setup_mic_listening()
-        self.listener_file = os.path.join(get_ipc_directory(), "mic_level")
+        self.listener_file = os.path.join(get_ipc_directory(), 'mic_level')
         self.st_results = os.stat(self.listener_file)
         self.max_amplitude = 0.001
 
@@ -137,7 +79,10 @@ class Mark2(MycroftSkill):
         self.amplitude = 0
 
     def initialize(self):
-        # Initialize...
+        """ Perform initalization.
+
+            Registers messagebus handlers and sets default gui values.
+        """
         self.brightness_dict = self.translate_namedvalues('brightness.levels')
         self.gui['volume'] = 0
 
@@ -180,10 +125,6 @@ class Mark2(MycroftSkill):
                         self.on_handler_interactingwithuser)
             self.bus.on('enclosure.mouth.think',
                         self.on_handler_interactingwithuser)
-            self.bus.on('enclosure.mouth.reset',
-                        self.on_handler_mouth_reset)
-            self.bus.on('recognizer_loop:audio_output_end',
-                        self.on_handler_mouth_reset)
             self.bus.on('enclosure.mouth.events.deactivate',
                         self.on_handler_interactingwithuser)
             self.bus.on('enclosure.mouth.text',
@@ -199,8 +140,10 @@ class Mark2(MycroftSkill):
                         self.on_register_idle)
 
             # Handle device settings events
+
+            # Use Legacy for QuickSetting delegate
             self.add_event('mycroft.device.settings',
-                           self.handle_device_settings) #Use Legacy for QuickSetting delegate
+                           self.handle_device_settings) 
             self.gui.register_handler('mycroft.device.settings',
                                       self.handle_device_settings)
             self.gui.register_handler('mycroft.device.settings.homescreen',
@@ -214,14 +157,16 @@ class Mark2(MycroftSkill):
             self.gui.register_handler('mycroft.device.settings.restart',
                                       self.handle_device_restart_action)
             self.gui.register_handler('mycroft.device.settings.poweroff',
-                            self.handle_device_poweroff_action)
+                                      self.handle_device_poweroff_action)
             self.gui.register_handler('mycroft.device.settings.wireless',
                                       self.handle_show_wifi_screen_intent)
-            self.gui.register_handler('mycroft.device.show.idle', self.show_idle_screen)
+            self.gui.register_handler('mycroft.device.show.idle',
+                                      self.show_idle_screen)
 
 
             # Handle idle selection
-            self.gui.register_handler('mycroft.device.set.idle', self.set_idle_screen)
+            self.gui.register_handler('mycroft.device.set.idle',
+                                      self.set_idle_screen)
 
             # System events
             self.add_event('system.reboot', self.handle_system_reboot)
@@ -261,7 +206,7 @@ class Mark2(MycroftSkill):
     ## System volume
 
     def on_volume_set(self, message):
-        # Force vol between 0.0 and 1.0
+        """ Force vol between 0.0 and 1.0. """
         vol = message.data.get("percent", 0.5)
         vol = 0.0 if vol < 0.0 else vol
         vol = 1.0 if vol > 1.0 else vol
@@ -270,43 +215,52 @@ class Mark2(MycroftSkill):
         self.set_hardware_volume(vol)
 
     def on_volume_get(self, message):
-        self.bus.emit(message.response(data={"percent": self.volume,
-                                             "muted": self.muted}))
+        """ Handle request for current volume. """
+        self.bus.emit(message.response(data={'percent': self.volume,
+                                             'muted': self.muted}))
 
     def on_volume_duck(self, message):
+        """ Handle ducking event by setting the output to 0. """
         self.muted = True
         self.set_hardware_volume(0)
 
     def on_volume_unduck(self, message):
+        """ Handle ducking event by setting the output to previous value. """
         self.muted = False
         self.set_hardware_volume(self.volume)
 
     def set_hardware_volume(self, pct):
-        # Set the volume on hardware (which supports levels 0-63)
-        self.log.debug("Setting hardware volume to: ".format(pct))
+        """ Set the volume on hardware (which supports levels 0-63).
+
+            Arguments:
+                pct (int): audio volume (0.0 - 1.0).
+        """
+        self.log.debug('Setting hardware volume to: {}'.format(pct))
         try:
-            subprocess.call(["/usr/sbin/i2cset",
-                             "-y",               # force a write
-                             "3",                # the i2c bus number
-                             "0x4b",             # the stereo amp device address
-                             str(int(63*pct))])  # volume level, 0-63
+            subprocess.call(['/usr/sbin/i2cset',
+                             '-y',               # force a write
+                             '3',                # the i2c bus number
+                             '0x4b',             # the stereo amp device address
+                             str(int(63 * pct))])# volume level, 0-63
         except Exception as e:
             log.error('Couldn\'t set volume. ({})'.format(e))
 
     def get_hardware_volume(self):
         # Get the volume from hardware
         try:
-            vol = subprocess.check_output(["/usr/sbin/i2cget", "-y",
-                                           "3", "0x4b"])
+            vol = subprocess.check_output(['/usr/sbin/i2cget', '-y',
+                                           '3', '0x4b'])
             # Convert the returned hex value from i2cget
             i = int(vol, 16)
             i = 0 if i < 0 else i
             i = 63 if i > 63 else i
             self.volume = i / 63.0
         except subprocess.CalledProcessError as e:
-            self.log.info("I2C Communication error:  {}".format(repr(e)))
+            self.log.info('I2C Communication error:  {}'.format(repr(e)))
+        except FileNotFoundError:
+            self.log.info('i2cget couldn\'t be found')
         except Exception:
-            self.log.info("UNEXPECTED VOLUME RESULT:  {}".format(vol))
+            self.log.info('UNEXPECTED VOLUME RESULT:  {}'.format(vol))
 
     ###################################################################
     ## Idle screen mechanism
@@ -355,7 +309,7 @@ class Mark2(MycroftSkill):
         except IOError as e:
             # damn
             self.errorcount += 1
-            self.log.error("{} Error recording: {}".format(self.errorcount, e))
+            self.log.error('{} Error recording: {}'.format(self.errorcount, e))
             return None
 
         amplitude = get_rms(block)
@@ -414,10 +368,6 @@ class Mark2(MycroftSkill):
                         self.on_handler_awoken)
         self.bus.remove('enclosure.mouth.think',
                         self.on_handler_interactingwithuser)
-        self.bus.remove('enclosure.mouth.reset',
-                        self.on_handler_mouth_reset)
-        self.bus.remove('recognizer_loop:audio_output_end',
-                        self.on_handler_mouth_reset)
         self.bus.remove('enclosure.mouth.events.deactivate',
                         self.on_handler_interactingwithuser)
         self.bus.remove('enclosure.mouth.text',
@@ -437,9 +387,9 @@ class Mark2(MycroftSkill):
     def on_handler_started(self, message):
         handler = message.data.get("handler", "")
         # Ignoring handlers from this skill and from the background clock
-        if "Mark2" in handler:
+        if 'Mark2' in handler:
             return
-        if "TimeSkill.update_display" in handler:
+        if 'TimeSkill.update_display' in handler:
             return
 
         self.hourglass_info[handler] = self.interaction_id
@@ -458,23 +408,19 @@ class Mark2(MycroftSkill):
         self.start_idle_event(30)
 
     def on_gui_page_show(self, message):
-        if "mark-2" not in message.data.get("__from", ""):
+        if 'mark-2' not in message.data.get('__from', ''):
             # Some skill other than the handler is showing a page
             self.has_show_page = True
 
             # If a skill overrides the idle do not switch page
             override_idle = message.data.get('__idle')
             if override_idle is not None:
-                self.log.debug("cancelling idle")
+                self.log.debug('Cancelling Idle screen')
                 self.cancel_idle_event()
                 self.override_idle = (message, time.monotonic())
             elif (message.data['page'] and
                     not message.data['page'][0].endswith('idle.qml')):
                 self.start_idle_event(30)
-
-    def on_handler_mouth_reset(self, message):
-        """ Restore viseme to a smile. """
-        pass
 
     def on_handler_interactingwithuser(self, message):
         """ Every time we do something that the user would notice,
@@ -485,19 +431,21 @@ class Mark2(MycroftSkill):
     def on_handler_sleep(self, message):
         """ Show resting face when going to sleep. """
         self.gui['state'] = 'resting'
-        self.gui.show_page("all.qml")
+        self.gui.show_page('all.qml')
 
     def on_handler_awoken(self, message):
         """ Show awake face when sleep ends. """
         self.gui['state'] = 'awake'
-        self.gui.show_page("all.qml")
+        self.gui.show_page('all.qml')
 
     def on_handler_complete(self, message):
-        handler = message.data.get("handler", "")
+        """ When a skill has finished executing clear the showing page state.
+        """
+        handler = message.data.get('handler', '')
         # Ignoring handlers from this skill and from the background clock
-        if "Mark2" in handler:
+        if 'Mark2' in handler:
             return
-        if "TimeSkill.update_display" in handler:
+        if 'TimeSkill.update_display' in handler:
             return
 
         self.has_show_page = False
@@ -513,11 +461,10 @@ class Mark2(MycroftSkill):
             # catches the mycroft.skill.handler.complete
             pass
 
-    #####################################################################
-    # Manage "speaking" visual
-
     def on_handler_speaking(self, message):
-        self.log.info("VISEMES")
+        """ Show the speaking page if no skill has registered a page
+            to be shown in it's place.
+        """
         self.gui["viseme"] = message.data
         if not self.has_show_page:
             self.gui['state'] = 'speaking'
@@ -564,7 +511,7 @@ class Mark2(MycroftSkill):
         self.log.debug('Showing idle screen')
         screen = None
         if self.override_idle:
-            self.log.debug("Returning to override")
+            self.log.debug('Returning to override idle screen')
             # Restore the page overriding idle instead of the normal idle
             self.bus.emit(self.override_idle[0])
         elif len(self.idle_screens) > 0 and 'selected' in self.gui:
@@ -599,14 +546,14 @@ class Mark2(MycroftSkill):
         self.gui.show_page('all.qml')
 
     def handle_failed_stt(self, message):
-        # No discernable words were transcribed
+        """ No discernable words were transcribed. Show idle screen again. """
         self.show_idle_screen()
 
     #####################################################################
     # Manage network connction feedback
 
     def handle_internet_connected(self, message):
-        # System came online later after booting
+        """ System came online later after booting. """
         self.enclosure.mouth_reset()
 
     #####################################################################
@@ -617,11 +564,12 @@ class Mark2(MycroftSkill):
         self._sync_wake_beep_setting()
 
     def _sync_wake_beep_setting(self):
+        """ Update "use beep" global config from skill settings. """
         from mycroft.configuration.config import (
             LocalConf, USER_CONFIG, Configuration
         )
         config = Configuration.get()
-        use_beep = self.settings.get("use_listening_beep") is True
+        use_beep = self.settings.get('use_listening_beep') is True
         if not config['confirm_listening'] == use_beep:
             # Update local (user) configuration setting
             new_config = {
@@ -635,26 +583,13 @@ class Mark2(MycroftSkill):
     #####################################################################
     # Brightness intent interaction
 
-    def percent_to_level(self, percent):
-        """ converts the brigtness value from percentage to
-             a value arduino can read
-
-            Args:
-                percent (int): interger value from 0 to 100
-
-            return:
-                (int): value form 0 to 30
-        """
-        return int(float(percent)/float(100)*30)
-
     def parse_brightness(self, brightness):
-        """ parse text for brightness percentage
+        """ Parse text for brightness percentage.
 
-            Args:
+            Arguments:
                 brightness (str): string containing brightness level
 
-            return:
-                (int): brightness as percentage (0-100)
+            Returns: (int) brightness as percentage (0-100)
         """
 
         try:
@@ -676,7 +611,7 @@ class Mark2(MycroftSkill):
 
             if i < 30:
                 # Assmume plain 0-30 is "level"
-                return int((i*100.0)/30.0)
+                return int((i * 100.0) / 30.0)
 
             # Assume plain 31-100 is "percentage"
             return i
@@ -684,17 +619,17 @@ class Mark2(MycroftSkill):
             return None  # failed in an int() conversion
 
     def set_screen_brightness(self, level, speak=True):
-        """ Actually change screen brightness
+        """ Actually change screen brightness.
 
-            Args:
+            Arguments:
                 level (int): 0-30, brightness level
                 speak (bool): when True, speak a confirmation
         """
         # TODO CHANGE THE BRIGHTNESS
         if speak is True:
-            percent = int(float(level)*float(100)/float(30))
+            percent = int(float(level) * float(100) / float(30))
             self.speak_dialog(
-                'brightness.set', data={'val': str(percent)+'%'})
+                'brightness.set', data={'val': str(percent) + '%'})
 
     def _set_brightness(self, brightness):
         # brightness can be a number or word like "full", "half"
@@ -705,13 +640,13 @@ class Mark2(MycroftSkill):
             self.handle_auto_brightness(None)
         else:
             self.auto_brightness = False
-            self.set_screen_brightness(self.percent_to_level(percent))
+            # TODO: Set brightness of screen
 
     @intent_file_handler('brightness.intent')
     def handle_brightness(self, message):
-        """ Intent Callback to set custom screen brightness
+        """ Intent handler to set custom screen brightness.
 
-            Args:
+            Arguments:
                 message (dict): messagebus message from intent parser
         """
         brightness = (message.data.get('brightness', None) or
@@ -720,10 +655,9 @@ class Mark2(MycroftSkill):
             self._set_brightness(brightness)
 
     def _get_auto_time(self):
-        """ get dawn, sunrise, noon, sunset, and dusk time
+        """ Get dawn, sunrise, noon, sunset, and dusk time.
 
-            returns:
-                times (dict): dict with associated (datetime, level)
+            Returns: (dict): dict with associated (datetime, level)
         """
         tz = self.location['timezone']['code']
         lat = self.location['coordinate']['latitude']
@@ -760,9 +694,9 @@ class Mark2(MycroftSkill):
         }
 
     def schedule_brightness(self, time_of_day, pair):
-        """ schedule auto brightness with the event scheduler
+        """ Schedule auto brightness with the event scheduler.
 
-            Args:
+            Arguments:
                 time_of_day (str): Sunrise, Noon, Sunset
                 pair (tuple): (datetime, brightness)
         """
@@ -783,8 +717,8 @@ class Mark2(MycroftSkill):
     def handle_auto_brightness(self, message):
         """ brightness varies depending on time of day
 
-            Args:
-                message (dict): messagebus message from intent parser
+            Arguments:
+                message (Message): messagebus message from intent parser
         """
         self.auto_brightness = True
         auto_time = self._get_auto_time()
@@ -801,8 +735,8 @@ class Mark2(MycroftSkill):
         """ wrapper for setting screen brightness from
             eventscheduler
 
-            Args:
-                message (dict): messagebus message
+            Arguments:
+                message (Message): messagebus message
         """
         if self.auto_brightness is True:
             time_of_day = message.data[0]
@@ -817,19 +751,15 @@ class Mark2(MycroftSkill):
 
     @intent_file_handler('device.settings.intent')
     def handle_device_settings(self, message):
-        """
-            display device settings page
-        """
+        """ Display device settings page. """
         self.gui['state'] = 'settings/settingspage'
         self.gui.show_page('all.qml')
 
     @intent_file_handler('device.wifi.settings.intent')
     def handle_show_wifi_screen_intent(self, message):
-        """
-            display network selection page
-        """
+        """ display network selection page. """
         self.gui.clear()
-        self.gui['state'] = "settings/networking/SelectNetwork"
+        self.gui['state'] = 'settings/networking/SelectNetwork'
         self.gui.show_page('all.qml')
 
     @intent_file_handler('device.homescreen.settings.intent')
@@ -837,7 +767,7 @@ class Mark2(MycroftSkill):
         """
             display homescreen settings page
         """
-        screens = [{"screenName": s, "screenID": self.idle_screens[s]}
+        screens = [{'screenName': s, 'screenID': self.idle_screens[s]}
                    for s in self.idle_screens]
         self.gui['idleScreenList'] = {'screenBlob': screens}
         self.gui['selectedScreen'] = self.gui['selected']
@@ -846,42 +776,33 @@ class Mark2(MycroftSkill):
 
     @intent_file_handler('device.ssh.settings.intent')
     def handle_device_ssh_settings(self, message):
-        """
-            display ssh settings page
-        """
+        """ Display ssh settings page. """
         self.gui['state'] = 'settings/ssh_settings'
         self.gui.show_page('all.qml')
 
     @intent_file_handler('device.reset.settings.intent')
     def handle_device_factory_reset_settings(self, message):
-        """
-            display device factory reset settings page
-        """
+        """ Display device factory reset settings page. """
         self.gui['state'] = 'settings/factoryreset_settings'
         self.gui.show_page('all.qml')
         
     def set_idle_screen(self, message):
-        self.gui['selected'] = message.data["selected"]
+        """ Set selected idle screen from message. """
+        self.gui['selected'] = message.data['selected']
         self.save_resting_screen()
 
     def handle_device_update_settings(self, message):
-        """
-            display device update settings page
-        """
+        """ Display device update settings page. """
         self.gui['state'] = 'settings/updatedevice_settings'
         self.gui.show_page('all.qml')
 
     def handle_device_restart_action(self, message):
-        """
-            device restart action
-        """
-        self.log.info("PlaceholderRestartAction")
+        """ Device restart action. """
+        self.log.info('PlaceholderRestartAction')
 
     def handle_device_poweroff_action(self, message):
-        """
-            device poweroff action
-        """
-        self.log.info("PlaceholderShutdownAction")
+        """ Device poweroff action. """
+        self.log.info('PlaceholderShutdownAction')
 
 def create_skill():
     return Mark2()
