@@ -580,6 +580,7 @@ class Mark2(MycroftSkill):
             Starts countdown to show the idle page.
         """
         # Start idle timer
+        self.cancel_idle_event()
         self.start_idle_event(weak=True)
 
         # Lower the max by half at the start of listener to make sure
