@@ -196,11 +196,11 @@ class Mark2(MycroftSkill):
     ## System events
 
     def handle_system_reboot(self, message):
-        self.speak_dialog("rebooting", wait=True)
-        subprocess.call(["/usr/bin/systemctl", "reboot"])
+        self.speak_dialog('rebooting', wait=True)
+        subprocess.call(['/usr/bin/systemctl', 'reboot'])
 
     def handle_system_shutdown(self, message):
-        subprocess.call(["/usr/bin/systemctl", "poweroff"])
+        subprocess.call(['/usr/bin/systemctl', 'poweroff'])
 
     ###################################################################
     ## System volume
