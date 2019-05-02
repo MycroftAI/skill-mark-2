@@ -247,6 +247,8 @@ class Mark2(MycroftSkill):
             self.volume = i / 63.0
         except subprocess.CalledProcessError as e:
             self.log.info("I2C Communication error:  {}".format(repr(e)))
+        except FileNotFoundError:
+            self.log.info('i2cget couldn\'t be found')
         except Exception:
             self.log.info("UNEXPECTED VOLUME RESULT:  {}".format(vol))
 
