@@ -243,7 +243,7 @@ class Mark2(MycroftSkill):
                              '0x4b',             # the stereo amp device address
                              str(int(63 * pct))])# volume level, 0-63
         except Exception as e:
-            log.error('Couldn\'t set volume. ({})'.format(e))
+            self.log.error('Couldn\'t set volume. ({})'.format(e))
 
     def get_hardware_volume(self):
         # Get the volume from hardware
