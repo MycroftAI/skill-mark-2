@@ -115,8 +115,6 @@ class Mark2(MycroftSkill):
             # Handle the 'busy' visual
             self.bus.on('mycroft.skill.handler.start',
                         self.on_handler_started)
-            self.bus.on('mycroft.skill.handler.complete',
-                        self.on_handler_complete)
 
             self.bus.on('recognizer_loop:sleep',
                         self.on_handler_sleep)
@@ -351,8 +349,6 @@ class Mark2(MycroftSkill):
         # Gotta clean up manually since not using add_event()
         self.bus.remove('mycroft.skill.handler.start',
                         self.on_handler_started)
-        self.bus.remove('mycroft.skill.handler.complete',
-                        self.on_handler_complete)
         self.bus.remove('recognizer_loop:sleep',
                         self.on_handler_sleep)
         self.bus.remove('mycroft.awoken',
@@ -406,29 +402,6 @@ class Mark2(MycroftSkill):
         """ Show awake face when sleep ends. """
         self.gui['state'] = 'awake'
         self.gui.show_page('all.qml')
-
-    def on_handler_complete(self, message):
-        """ When a skill has finished executing clear the showing page state.
-        """
-        handler = message.data.get('handler', '')
-        # Ignoring handlers from this skill and from the background clock
-        if 'Mark2' in handler:
-            return
-        if 'TimeSkill.update_display' in handler:
-            return
-
-        self.has_show_page = False
-
-        try:
-            if self.hourglass_info[handler] == -1:
-                self.enclosure.reset()
-            del self.hourglass_info[handler]
-        except:
-            # There is a slim chance the self.hourglass_info might not
-            # be populated if this skill reloads at just the right time
-            # so that it misses the mycroft.skill.handler.start but
-            # catches the mycroft.skill.handler.complete
-            pass
 
     def on_handler_speaking(self, message):
         """ Show the speaking page if no skill has registered a page
@@ -511,6 +484,7 @@ class Mark2(MycroftSkill):
 
     def handle_listener_ended(self, message):
         """ When listening has ended show the thinking animation. """
+        self.has_show_page = False
         self.gui['state'] = 'thinking'
         self.gui.show_page('all.qml')
 
