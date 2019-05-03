@@ -354,6 +354,7 @@ class Mark2(MycroftSkill):
         if (self.override_idle and
                 time.monotonic() - self.override_idle[1] > 2):
             self.override_idle = None
+            self.show_idle_screen()
         self.gui['viseme'] = {'start': 0, 'visemes': []}
         return False
 
