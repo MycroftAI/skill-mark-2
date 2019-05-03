@@ -37,9 +37,13 @@ from .listener import (get_rms, open_mic_stream, read_file_from,
 
 
 class Mark2(MycroftSkill):
-
-    IDLE_CHECK_FREQUENCY = 6  # in seconds
-
+    """
+        The Mark2 skill handles much of the gui activities related to
+        Mycroft's core functionality. This includes showing "listening",
+        "thinking", and "speaking" faces as well as more complicated things
+        such as switching to the selected resting face and handling
+        system signals.
+    """
     def __init__(self):
         super().__init__('Mark2')
 
@@ -47,9 +51,6 @@ class Mark2(MycroftSkill):
         self.override_idle = None
         self.idle_next = 0 # Next time the idle screen should trigger
         self.idle_lock = Lock()
-
-        self.hourglass_info = {}
-        self.interaction_id = 0
 
         self.settings['auto_brightness'] = False
         self.settings['use_listening_beep'] = True
@@ -114,8 +115,6 @@ class Mark2(MycroftSkill):
             # Handle the 'busy' visual
             self.bus.on('mycroft.skill.handler.start',
                         self.on_handler_started)
-            self.bus.on('mycroft.skill.handler.complete',
-                        self.on_handler_complete)
 
             self.bus.on('recognizer_loop:sleep',
                         self.on_handler_sleep)
@@ -362,10 +361,6 @@ class Mark2(MycroftSkill):
         # Gotta clean up manually since not using add_event()
         self.bus.remove('mycroft.skill.handler.start',
                         self.on_handler_started)
-        self.bus.remove('mycroft.skill.handler.complete',
-                        self.on_handler_complete)
-        self.bus.remove('recognizer_loop:audio_output_start',
-                        self.on_handler_interactingwithuser)
         self.bus.remove('recognizer_loop:sleep',
                         self.on_handler_sleep)
         self.bus.remove('mycroft.awoken',
@@ -399,16 +394,6 @@ class Mark2(MycroftSkill):
             return
         if 'TimeSkill.update_display' in handler:
             return
-
-        self.hourglass_info[handler] = self.interaction_id
-        # time.sleep(0.25)
-        if self.hourglass_info[handler] == self.interaction_id:
-            # Nothing has happend within a quarter second to indicate to the
-            # user that we are active, so start a thinking visual
-            self.hourglass_info[handler] = -1
-            # SSP: No longer need this logic since we show "thinking.qml"
-            #      immediately after the record_end?
-            # self.gui.show_page("thinking.qml")
 
     def on_gui_page_interaction(self, message):
         """ Reset idle timer to 30 seconds when page is flipped. """
@@ -556,6 +541,7 @@ class Mark2(MycroftSkill):
 
     def handle_listener_ended(self, message):
         """ When listening has ended show the thinking animation. """
+        self.has_show_page = False
         self.gui['state'] = 'thinking'
         self.gui.show_page('all.qml')
 
