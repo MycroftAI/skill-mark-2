@@ -409,10 +409,10 @@ class Mark2(MycroftSkill):
             override_idle = message.data.get('__idle')
             if override_idle is True:
                 # Disable idle screen
-                self.log.debug('Cancelling Idle screen')
+                self.log.info('Cancelling Idle screen')
                 self.cancel_idle_event()
                 self.override_idle = (message, time.monotonic())
-            if isinstance(override_idle, int):
+            elif isinstance(override_idle, int):
                 # Set the indicated idle timeout
                 self.log.info('Overriding idle timer to'
                               ' {} seconds'.format(override_idle))
