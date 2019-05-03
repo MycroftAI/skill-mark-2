@@ -354,6 +354,7 @@ class Mark2(MycroftSkill):
         if (self.override_idle and
                 time.monotonic() - self.override_idle[1] > 2):
             self.override_idle = None
+            self.show_idle_screen()
         self.gui['viseme'] = {'start': 0, 'visemes': []}
         return False
 
@@ -409,10 +410,10 @@ class Mark2(MycroftSkill):
             override_idle = message.data.get('__idle')
             if override_idle is True:
                 # Disable idle screen
-                self.log.debug('Cancelling Idle screen')
+                self.log.info('Cancelling Idle screen')
                 self.cancel_idle_event()
                 self.override_idle = (message, time.monotonic())
-            if isinstance(override_idle, int):
+            elif isinstance(override_idle, int):
                 # Set the indicated idle timeout
                 self.log.info('Overriding idle timer to'
                               ' {} seconds'.format(override_idle))
@@ -476,7 +477,7 @@ class Mark2(MycroftSkill):
             self.gui['state'] = 'speaking'
             self.gui.show_page("all.qml")
             # Show idle screen after the visemes are done (+ 2 sec).
-            time = message.data['visemes'][-1][1] + 3
+            time = message.data['visemes'][-1][1] + 5
             self.start_idle_event(time)
 
     #####################################################################
