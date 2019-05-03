@@ -407,16 +407,16 @@ class Mark2(MycroftSkill):
 
             # If a skill overrides the idle do not switch page
             override_idle = message.data.get('__idle')
+            if override_idle is True:
+                # Disable idle screen
+                self.log.debug('Cancelling Idle screen')
+                self.cancel_idle_event()
+                self.override_idle = (message, time.monotonic())
             if isinstance(override_idle, int):
                 # Set the indicated idle timeout
                 self.log.info('Overriding idle timer to'
                               ' {} seconds'.format(override_idle))
                 self.start_idle_event(override_idle)
-            elif override_idle:
-                # Disable idle screen
-                self.log.debug('Cancelling Idle screen')
-                self.cancel_idle_event()
-                self.override_idle = (message, time.monotonic())
             elif (message.data['page'] and
                     not message.data['page'][0].endswith('idle.qml')):
                 # Set default idle screen timer
