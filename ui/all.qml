@@ -5,8 +5,6 @@ import org.kde.kirigami 2.5 as Kirigami
 import Mycroft 1.0 as Mycroft
 
 Mycroft.Delegate {
-    skillBackgroundSource: null
-
     id: mainLoaderView
 
     property var pageToLoad: sessionData.state

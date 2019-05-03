@@ -125,6 +125,10 @@ class Mark2(MycroftSkill):
                         self.on_handler_interactingwithuser)
             self.bus.on('enclosure.mouth.think',
                         self.on_handler_interactingwithuser)
+            self.bus.on('enclosure.mouth.reset',
+                        self.on_handler_mouth_reset)
+            self.bus.on('recognizer_loop:audio_output_end',
+                        self.on_handler_mouth_reset)
             self.bus.on('enclosure.mouth.events.deactivate',
                         self.on_handler_interactingwithuser)
             self.bus.on('enclosure.mouth.text',
@@ -140,10 +144,10 @@ class Mark2(MycroftSkill):
                         self.on_register_idle)
 
             # Handle device settings events
+            self.add_event('mycroft.device.settings',
+                           self.handle_device_settings)
 
             # Use Legacy for QuickSetting delegate
-            self.add_event('mycroft.device.settings',
-                           self.handle_device_settings) 
             self.gui.register_handler('mycroft.device.settings',
                                       self.handle_device_settings)
             self.gui.register_handler('mycroft.device.settings.homescreen',
@@ -313,7 +317,7 @@ class Mark2(MycroftSkill):
             return None
 
         amplitude = get_rms(block)
-        result = int(amplitude / ((self.max_amplitude) + 0.001) * 15) 
+        result = int(amplitude / ((self.max_amplitude) + 0.001) * 15)
         self.max_amplitude = max(amplitude, self.max_amplitude)
         return result
 
@@ -368,6 +372,10 @@ class Mark2(MycroftSkill):
                         self.on_handler_awoken)
         self.bus.remove('enclosure.mouth.think',
                         self.on_handler_interactingwithuser)
+        self.bus.remove('enclosure.mouth.reset',
+                        self.on_handler_mouth_reset)
+        self.bus.remove('recognizer_loop:audio_output_end',
+                        self.on_handler_mouth_reset)
         self.bus.remove('enclosure.mouth.events.deactivate',
                         self.on_handler_interactingwithuser)
         self.bus.remove('enclosure.mouth.text',
@@ -422,6 +430,10 @@ class Mark2(MycroftSkill):
                     not message.data['page'][0].endswith('idle.qml')):
                 self.start_idle_event(30)
 
+    def on_handler_mouth_reset(self, message):
+        """ Restore viseme to a smile. """
+        pass
+
     def on_handler_interactingwithuser(self, message):
         """ Every time we do something that the user would notice,
             increment an interaction counter.
@@ -439,8 +451,7 @@ class Mark2(MycroftSkill):
         self.gui.show_page('all.qml')
 
     def on_handler_complete(self, message):
-        """ When a skill has finished executing clear the showing page state.
-        """
+        """ When a skill finishes executing clear the showing page state. """
         handler = message.data.get('handler', '')
         # Ignoring handlers from this skill and from the background clock
         if 'Mark2' in handler:
@@ -460,6 +471,9 @@ class Mark2(MycroftSkill):
             # so that it misses the mycroft.skill.handler.start but
             # catches the mycroft.skill.handler.complete
             pass
+
+    #####################################################################
+    # Manage "speaking" visual
 
     def on_handler_speaking(self, message):
         """ Show the speaking page if no skill has registered a page
@@ -583,13 +597,26 @@ class Mark2(MycroftSkill):
     #####################################################################
     # Brightness intent interaction
 
+    def percent_to_level(self, percent):
+        """ Converts the brigtness value from percentage to a
+            value the Arduino can read
+
+            Arguments:
+                percent (int): interger value from 0 to 100
+
+            return:
+                (int): value form 0 to 30
+        """
+        return int(float(percent) / float(100) * 30)
+
     def parse_brightness(self, brightness):
         """ Parse text for brightness percentage.
 
             Arguments:
                 brightness (str): string containing brightness level
 
-            Returns: (int) brightness as percentage (0-100)
+            Returns:
+                (int): brightness as percentage (0-100)
         """
 
         try:
@@ -640,7 +667,7 @@ class Mark2(MycroftSkill):
             self.handle_auto_brightness(None)
         else:
             self.auto_brightness = False
-            # TODO: Set brightness of screen
+            self.set_screen_brightness(self.percent_to_level(percent))
 
     @intent_file_handler('brightness.intent')
     def handle_brightness(self, message):
@@ -657,7 +684,8 @@ class Mark2(MycroftSkill):
     def _get_auto_time(self):
         """ Get dawn, sunrise, noon, sunset, and dusk time.
 
-            Returns: (dict): dict with associated (datetime, level)
+            Returns:
+                times (dict): dict with associated (datetime, level)
         """
         tz = self.location['timezone']['code']
         lat = self.location['coordinate']['latitude']
@@ -732,8 +760,7 @@ class Mark2(MycroftSkill):
         self.set_screen_brightness(nearest_time_to_now[1], speak=False)
 
     def _handle_screen_brightness_event(self, message):
-        """ wrapper for setting screen brightness from
-            eventscheduler
+        """ Wrapper for setting screen brightness from eventscheduler
 
             Arguments:
                 message (Message): messagebus message
@@ -785,7 +812,7 @@ class Mark2(MycroftSkill):
         """ Display device factory reset settings page. """
         self.gui['state'] = 'settings/factoryreset_settings'
         self.gui.show_page('all.qml')
-        
+
     def set_idle_screen(self, message):
         """ Set selected idle screen from message. """
         self.gui['selected'] = message.data['selected']
