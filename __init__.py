@@ -476,7 +476,7 @@ class Mark2(MycroftSkill):
             self.gui['state'] = 'speaking'
             self.gui.show_page("all.qml")
             # Show idle screen after the visemes are done (+ 2 sec).
-            time = message.data['visemes'][-1][1] + 3
+            time = message.data['visemes'][-1][1] + 5
             self.start_idle_event(time)
 
     #####################################################################
