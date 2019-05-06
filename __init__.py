@@ -378,6 +378,8 @@ class Mark2(MycroftSkill):
                         self.on_handler_interactingwithuser)
         self.bus.remove('enclosure.mouth.viseme_list',
                         self.on_handler_speaking)
+        self.bus.remove('gui.page.show',
+                        self.on_gui_page_show)
         self.bus.remove('gui.page_interaction', self.on_gui_page_interaction)
         self.bus.remove('mycroft.mark2.register_idle', self.on_register_idle)
 
