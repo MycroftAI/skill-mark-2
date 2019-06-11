@@ -58,7 +58,8 @@ class Mark2(MycroftSkill):
         self.has_show_page = False  # resets with each handler
 
         # Volume indicatior
-        self.setup_mic_listening()
+        self.thread = None
+        self.pa = pyaudio.PyAudio()
         self.listener_file = os.path.join(get_ipc_directory(), 'mic_level')
         self.st_results = os.stat(self.listener_file)
         self.max_amplitude = 0.001
@@ -72,7 +73,6 @@ class Mark2(MycroftSkill):
         """ Initializes PyAudio, starts an input stream and launches the
             listening thread.
         """
-        self.pa = pyaudio.PyAudio()
         listener_conf = self.config_core['listener']
         self.stream = open_mic_stream(self.pa,
                                       listener_conf.get('device_index'),
@@ -93,12 +93,6 @@ class Mark2(MycroftSkill):
         # Preselect Time and Date as resting screen
         self.gui['selected'] = self.settings.get('selected', 'Time and Date')
         self.gui.set_on_gui_changed(self.save_resting_screen)
-
-        # Start listening thread
-        self.running = True
-        self.thread = Thread(target=self.listen_thread)
-        self.thread.daemon = True
-        self.thread.start()
 
         try:
             self.add_event('mycroft.internet.connected',
@@ -194,6 +188,20 @@ class Mark2(MycroftSkill):
         self._sync_wake_beep_setting()
 
         self.settings.set_changed_callback(self.on_websettings_changed)
+
+    def start_listening_thread(self):
+        # Start listening thread
+        if not self.thread:
+            self.running = True
+            self.thread = Thread(target=self.listen_thread)
+            self.thread.daemon = True
+            self.thread.start()
+
+    def stop_listening_thread(self):
+        if self.thread:
+            self.running = False
+            self.thread.join()
+            self.thread = None
 
     ###################################################################
     ## System events
@@ -302,8 +310,12 @@ class Mark2(MycroftSkill):
 
     def listen_thread(self):
         """ listen on mic input until self.running is False. """
+        self.setup_mic_listening()
+        self.log.debug("Starting listening")
         while(self.running):
             self.listen()
+        self.stream.close()
+        self.log.debug("Listening stopped")
 
     def get_audio_level(self):
         """ Get level directly from audio device. """
@@ -383,9 +395,7 @@ class Mark2(MycroftSkill):
         self.bus.remove('gui.page_interaction', self.on_gui_page_interaction)
         self.bus.remove('mycroft.mark2.register_idle', self.on_register_idle)
 
-        self.running = False
-        self.thread.join()
-        self.stream.close()
+        self.stop_listening_thread()
 
     #####################################################################
     # Manage "busy" visual
@@ -545,6 +555,7 @@ class Mark2(MycroftSkill):
         if self.max_amplitude > 0.001:
             self.max_amplitude /= 2
 
+        self.start_listening_thread()
         # Show listening page
         self.gui['state'] = 'listening'
         self.gui.show_page('all.qml')
@@ -554,6 +565,7 @@ class Mark2(MycroftSkill):
         self.has_show_page = False
         self.gui['state'] = 'thinking'
         self.gui.show_page('all.qml')
+        self.stop_listening_thread()
 
     def handle_failed_stt(self, message):
         """ No discernable words were transcribed. Show idle screen again. """
