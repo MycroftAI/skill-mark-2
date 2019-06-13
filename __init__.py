@@ -117,18 +117,10 @@ class Mark2(MycroftSkill):
                         self.on_handler_sleep)
             self.bus.on('mycroft.awoken',
                         self.on_handler_awoken)
-            self.bus.on('recognizer_loop:audio_output_start',
-                        self.on_handler_interactingwithuser)
-            self.bus.on('enclosure.mouth.think',
-                        self.on_handler_interactingwithuser)
             self.bus.on('enclosure.mouth.reset',
                         self.on_handler_mouth_reset)
             self.bus.on('recognizer_loop:audio_output_end',
                         self.on_handler_mouth_reset)
-            self.bus.on('enclosure.mouth.events.deactivate',
-                        self.on_handler_interactingwithuser)
-            self.bus.on('enclosure.mouth.text',
-                        self.on_handler_interactingwithuser)
             self.bus.on('enclosure.mouth.viseme_list',
                         self.on_handler_speaking)
             self.bus.on('gui.page.show',
@@ -386,16 +378,10 @@ class Mark2(MycroftSkill):
                         self.on_handler_sleep)
         self.bus.remove('mycroft.awoken',
                         self.on_handler_awoken)
-        self.bus.remove('enclosure.mouth.think',
-                        self.on_handler_interactingwithuser)
         self.bus.remove('enclosure.mouth.reset',
                         self.on_handler_mouth_reset)
         self.bus.remove('recognizer_loop:audio_output_end',
                         self.on_handler_mouth_reset)
-        self.bus.remove('enclosure.mouth.events.deactivate',
-                        self.on_handler_interactingwithuser)
-        self.bus.remove('enclosure.mouth.text',
-                        self.on_handler_interactingwithuser)
         self.bus.remove('enclosure.mouth.viseme_list',
                         self.on_handler_speaking)
         self.bus.remove('gui.page.show',
@@ -446,12 +432,6 @@ class Mark2(MycroftSkill):
     def on_handler_mouth_reset(self, message):
         """ Restore viseme to a smile. """
         pass
-
-    def on_handler_interactingwithuser(self, message):
-        """ Every time we do something that the user would notice,
-            increment an interaction counter.
-        """
-        self.interaction_id += 1
 
     def on_handler_sleep(self, message):
         """ Show resting face when going to sleep. """
