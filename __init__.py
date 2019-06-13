@@ -20,10 +20,9 @@ from datetime import datetime
 
 from mycroft.messagebus.message import Message
 from mycroft.skills.core import MycroftSkill
-from mycroft.util import connected, get_ipc_directory
+from mycroft.util import get_ipc_directory
 from mycroft.util.log import LOG
 from mycroft.util.parse import normalize
-from mycroft.audio import wait_while_speaking
 from mycroft import intent_file_handler
 
 import os
@@ -49,7 +48,7 @@ class Mark2(MycroftSkill):
 
         self.idle_screens = {}
         self.override_idle = None
-        self.idle_next = 0 # Next time the idle screen should trigger
+        self.idle_next = 0  # Next time the idle screen should trigger
         self.idle_lock = Lock()
 
         self.settings['auto_brightness'] = False
@@ -60,8 +59,12 @@ class Mark2(MycroftSkill):
         # Volume indicatior
         self.thread = None
         self.pa = pyaudio.PyAudio()
-        self.listener_file = os.path.join(get_ipc_directory(), 'mic_level')
-        self.st_results = os.stat(self.listener_file)
+        try:
+            self.listener_file = os.path.join(get_ipc_directory(), 'mic_level')
+            self.st_results = os.stat(self.listener_file)
+        except Exception:
+            self.listener_file = None
+            self.st_results = None
         self.max_amplitude = 0.001
 
         # System volume
@@ -160,7 +163,6 @@ class Mark2(MycroftSkill):
             self.gui.register_handler('mycroft.device.show.idle',
                                       self.show_idle_screen)
 
-
             # Handle idle selection
             self.gui.register_handler('mycroft.device.set.idle',
                                       self.set_idle_screen)
@@ -204,8 +206,7 @@ class Mark2(MycroftSkill):
             self.thread = None
 
     ###################################################################
-    ## System events
-
+    # System events
     def handle_system_reboot(self, message):
         self.speak_dialog('rebooting', wait=True)
         subprocess.call(['/usr/bin/systemctl', 'reboot'])
@@ -214,7 +215,7 @@ class Mark2(MycroftSkill):
         subprocess.call(['/usr/bin/systemctl', 'poweroff'])
 
     ###################################################################
-    ## System volume
+    # System volume
 
     def on_volume_set(self, message):
         """ Force vol between 0.0 and 1.0. """
@@ -249,10 +250,10 @@ class Mark2(MycroftSkill):
         self.log.debug('Setting hardware volume to: {}'.format(pct))
         try:
             subprocess.call(['/usr/sbin/i2cset',
-                             '-y',               # force a write
-                             '3',                # the i2c bus number
-                             '0x4b',             # the stereo amp device address
-                             str(int(63 * pct))])# volume level, 0-63
+                             '-y',                 # force a write
+                             '3',                  # i2c bus number
+                             '0x4b',               # stereo amp device address
+                             str(int(63 * pct))])  # volume level, 0-63
         except Exception as e:
             self.log.error('Couldn\'t set volume. ({})'.format(e))
 
@@ -274,7 +275,7 @@ class Mark2(MycroftSkill):
             self.log.info('UNEXPECTED VOLUME RESULT:  {}'.format(vol))
 
     ###################################################################
-    ## Idle screen mechanism
+    # Idle screen mechanism
 
     def save_resting_screen(self):
         """ Handler to be called if the settings are changed by
@@ -335,6 +336,13 @@ class Mark2(MycroftSkill):
     def get_listener_level(self):
         """ Get level from IPC file created by listener. """
         time.sleep(0.05)
+        if not self.listener_file:
+            try:
+                self.listener_file = os.path.join(get_ipc_directory(),
+                                                  'mic_level')
+            except FileNotFoundError:
+                return None
+
         try:
             st_results = os.stat(self.listener_file)
 
@@ -354,11 +362,11 @@ class Mark2(MycroftSkill):
     def listen(self):
         """ Read microphone level and store rms into self.gui['volume']. """
         amplitude = self.get_audio_level()
-        #amplitude = self.get_listener_level()
+        # amplitude = self.get_listener_level()
 
-        if (self.gui and ('volume' not in self.gui
-                     or self.gui['volume'] != amplitude) and
-                 amplitude is not None):
+        if (self.gui and
+            ('volume' not in self.gui or self.gui['volume'] != amplitude) and
+                amplitude is not None):
             self.gui['volume'] = amplitude
 
     def stop(self, message=None):
@@ -470,7 +478,7 @@ class Mark2(MycroftSkill):
             if self.hourglass_info[handler] == -1:
                 self.enclosure.reset()
             del self.hourglass_info[handler]
-        except:
+        except Exception:
             # There is a slim chance the self.hourglass_info might not
             # be populated if this skill reloads at just the right time
             # so that it misses the mycroft.skill.handler.start but
@@ -650,7 +658,7 @@ class Mark2(MycroftSkill):
 
             # Assume plain 31-100 is "percentage"
             return i
-        except:
+        except Exception:
             return None  # failed in an int() conversion
 
     def set_screen_brightness(self, level, speak=True):
@@ -838,6 +846,7 @@ class Mark2(MycroftSkill):
     def handle_device_poweroff_action(self, message):
         """ Device poweroff action. """
         self.log.info('PlaceholderShutdownAction')
+
 
 def create_skill():
     return Mark2()
