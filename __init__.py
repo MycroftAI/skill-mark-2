@@ -60,8 +60,12 @@ class Mark2(MycroftSkill):
         # Volume indicatior
         self.thread = None
         self.pa = pyaudio.PyAudio()
-        self.listener_file = os.path.join(get_ipc_directory(), 'mic_level')
-        self.st_results = os.stat(self.listener_file)
+        try:
+            self.listener_file = os.path.join(get_ipc_directory(), 'mic_level')
+            self.st_results = os.stat(self.listener_file)
+        except Exception:
+            self.listener_file = None
+            self.st_results = None
         self.max_amplitude = 0.001
 
         # System volume
@@ -335,6 +339,13 @@ class Mark2(MycroftSkill):
     def get_listener_level(self):
         """ Get level from IPC file created by listener. """
         time.sleep(0.05)
+        if not self.listener_file:
+            try:
+                self.listener_file = os.path.join(get_ipc_directory(),
+                                                  'mic_level')
+            except FileNotFoundError:
+                return None
+
         try:
             st_results = os.stat(self.listener_file)
 
