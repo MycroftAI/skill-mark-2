@@ -8,15 +8,25 @@ import org.kde.lottie 1.0
 
 Item {
     id: "thinking"
-    LottieAnimation {
-        id: thinkingAnimation
-        anchors.centerIn: parent
+
+    AnimatedImage {
+        id: thinkingGIF
         height: Math.min(parent.width, parent.height)
-
-        source: Qt.resolvedUrl("face/thinking.json")
-
-        loops: Animation.Infinite
+        anchors.centerIn: parent
+        source: Qt.resolvedUrl("ring_ball.gif")
         fillMode: Image.PreserveAspectFit
-        running: true
+        playing: true
     }
+
+// Commented out Lottie for now.  The Lottie player is crashing.
+//
+//    LottieAnimation {
+//        id: thinkingAnimation
+//        anchors.centerIn: parent
+//        height: Math.min(parent.width, parent.height)
+//        source: Qt.resolvedUrl("face/thinking.json")
+//        loops: Animation.Infinite
+//        fillMode: Image.PreserveAspectFit
+//        running: true
+//    }
 }

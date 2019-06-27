@@ -8,11 +8,8 @@ Mycroft.Delegate {
     id: mainLoaderView
 
     property var pageToLoad: sessionData.state
-    property var securityType: sessionData.SecurityType
-    property var connectionName: sessionData.ConnectionName
-    property var devicePath: sessionData.DevicePath
-    property var specificPath: sessionData.SpecificPath
     property var idleScreenList: sessionData.idleScreenList
+    property var activeIdle: sessionData.selectedScreen
 
     contentItem: Loader {
         id: rootLoader

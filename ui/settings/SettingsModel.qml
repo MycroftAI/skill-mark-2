@@ -8,18 +8,6 @@ ListModel {
     id: settingsListModel
     
     ListElement {
-        settingIcon: "network-wireless"
-        settingName: "Wi-Fi"
-        settingEvent: "mycroft.device.settings.wireless"
-        settingCall: "show wireless settings" 
-    }
-    ListElement {
-        settingIcon: "contrast"
-        settingName: "Brightness"
-        settingEvent: "mycroft.device.settings.brightness"
-        settingCall: "show brightness settings" 
-    }
-    ListElement {
         settingIcon: "go-home"
         settingName: "Homescreen"
         settingEvent: "mycroft.device.settings.homescreen"
