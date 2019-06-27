@@ -10,6 +10,7 @@ Mycroft.Delegate {
     property var pageToLoad: sessionData.state
     property var idleScreenList: sessionData.idleScreenList
     property var activeIdle: sessionData.selectedScreen
+    property var skillConfig: sessionData.skillConfig
 
     contentItem: Loader {
         id: rootLoader

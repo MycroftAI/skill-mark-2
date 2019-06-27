@@ -15,6 +15,7 @@
 import astral
 import time
 import arrow
+import json
 from pytz import timezone
 from datetime import datetime
 
@@ -53,6 +54,9 @@ class Mark2(MycroftSkill):
 
         self.settings['auto_brightness'] = False
         self.settings['use_listening_beep'] = True
+
+        self.skill_setting_obj = {}
+        self.skill_setting_list = []
 
         self.has_show_page = False  # resets with each handler
 
@@ -131,6 +135,10 @@ class Mark2(MycroftSkill):
             self.bus.on('mycroft.mark2.register_idle',
                         self.on_register_idle)
 
+            # Handle show skill settings in GUI
+            self.bus.on('gui.skill.settings.show',
+                        self.handle_skill_setting_show)
+
             # Handle device settings events
             self.add_event('mycroft.device.settings',
                            self.handle_device_settings)
@@ -154,6 +162,8 @@ class Mark2(MycroftSkill):
                                       self.handle_show_wifi_screen_intent)
             self.gui.register_handler('mycroft.device.show.idle',
                                       self.show_idle_screen)
+            self.gui.register_handler('mycroft.device.settings.skillconfig',
+                                      self.handle_device_skill_settings)
 
             # Handle idle selection
             self.gui.register_handler('mycroft.device.set.idle',
@@ -388,6 +398,8 @@ class Mark2(MycroftSkill):
                         self.on_gui_page_show)
         self.bus.remove('gui.page_interaction', self.on_gui_page_interaction)
         self.bus.remove('mycroft.mark2.register_idle', self.on_register_idle)
+        self.bus.remove('gui.skill.settings.show',
+                        self.handle_skill_setting_show)
 
         self.stop_listening_thread()
 
@@ -776,6 +788,7 @@ class Mark2(MycroftSkill):
     def handle_device_settings(self, message):
         """ Display device settings page. """
         self.gui['state'] = 'settings/settingspage'
+        self.gui['skillConfig'] = self.skill_setting_obj
         self.gui.show_page('all.qml')
 
     @intent_file_handler('device.wifi.settings.intent')
@@ -826,6 +839,34 @@ class Mark2(MycroftSkill):
     def handle_device_poweroff_action(self, message):
         """ Device poweroff action. """
         self.log.info('PlaceholderShutdownAction')
+
+    def handle_skill_setting_show(self, message):
+        """ Handle build skill settings display. """
+        if (message.data["method"] == "set"):
+
+            self.skill_setting_list.append({"skill_id": message.data["skill_id"],
+                                            "setting_key": message.data["setting_key"],
+                                            "setting_type": message.data["setting_type"],
+                                            "current_value": message.data["current_value"],
+                                            "available_values": message.data["available_values"]})
+
+        elif (message.data["method"] == "update"):
+            a = next(item for item in self.skill_setting_list
+                     if item["skill_id"] == message.data["skill_id"])
+            a["current_value"] = message.data["current_value"]
+            self.log.info(a)
+
+        else:
+            self.log.error("no method defined")
+
+        self.skill_setting_obj["configs"] = self.skill_setting_list
+        self.gui['skillConfig'] = json.dumps(skill_setting_obj)
+
+    def handle_device_skill_settings(self, message):
+        """ Handle show skill settings display page. """
+        self.gui['skillConfig'] = self.skill_setting_obj
+        self.gui['state'] = 'settings/skill_settings'
+        self.gui.show_page('all.qml')
 
 
 def create_skill():

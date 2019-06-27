@@ -32,6 +32,12 @@ ListModel {
         settingCall: "" 
     }
     ListElement {
+        settingIcon: "configure"
+        settingName: "Skill Config"
+        settingEvent: "mycroft.device.settings.skillconfig"
+        settingCall: "" 
+    }
+    ListElement {
         settingIcon: "view-refresh"
         settingName: "Reboot"
         settingEvent: "mycroft.device.settings.restart"
