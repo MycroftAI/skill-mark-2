@@ -142,7 +142,14 @@ Item {
                                                 var rbutton = newObject.createObject(skillSettingType, {checked: modelData.current_value == modelData.available_values[i] ? 1 : 0 , text: modelData.available_values[i], "skillevent": skilleventname, "key": modelData.setting_key, "value": modelData.available_values[i]});
                                                 rbutton.clicked.connect(selectSettingUpdated)
                                             }
-                                        } 
+                                        }
+                                        if (modelData.setting_type == "checkbox") {
+                                            console.log(modelData.current_value)
+                                            var newObject = Qt.createComponent("settings_button/settingCheckbox.qml")
+                                            var skilleventname = modelData.skill_id + ".setting"
+                                            var rbutton = newObject.createObject(skillSettingType, {checked: modelData.current_value == true ? 1 : 0 , text: "Enable", "skillevent": skilleventname, "key": modelData.setting_key, "value": "Enable"});
+                                            rbutton.clicked.connect(selectSettingUpdated)
+                                        }
                                     }
                                 }
                             }
