@@ -170,8 +170,8 @@ class Mark2(MycroftSkill):
             self.add_event('mycroft.volume.unduck', self.on_volume_unduck)
 
             # Show loading screen while starting up skills.
-            self.gui['state'] = 'loading'
-            self.gui.show_page('all.qml')
+            # self.gui['state'] = 'loading'
+            # self.gui.show_page('all.qml')
 
             # Collect Idle screens and display if skill is restarted
             self.collect_resting_screens()
