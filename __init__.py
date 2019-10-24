@@ -35,6 +35,23 @@ from .listener import (get_rms, open_mic_stream, read_file_from,
                        INPUT_FRAMES_PER_BLOCK)
 
 
+# Definitions used when sending volume over i2c
+VOL_MAX = 30
+VOL_OFFSET = 15
+VOL_SMAX = VOL_MAX - VOL_OFFSET
+VOL_ZERO = 0
+
+
+def clip(val, minimum, maximum):
+    """ Clips / limits a value to a specific range.
+        Arguments:
+            val: value to be limited
+            minimum: minimum allowed value
+            maximum: maximum allowed value
+    """
+    return min(max(val, minimum), maximum)
+
+
 class Mark2(MycroftSkill):
     """
         The Mark2 skill handles much of the gui activities related to
@@ -45,6 +62,8 @@ class Mark2(MycroftSkill):
     """
     def __init__(self):
         super().__init__('Mark2')
+
+        self.i2c_channel = 1
 
         self.idle_screens = {}
         self.override_idle = None
@@ -87,6 +106,10 @@ class Mark2(MycroftSkill):
 
             Registers messagebus handlers and sets default gui values.
         """
+        enclosure_info = self.config_core.get('enclosure', {})
+        self.i2c_channel = enclosure_info.get('i2c_channel',
+                                              self.i2c_channel)
+
         self.brightness_dict = self.translate_namedvalues('brightness.levels')
         self.gui['volume'] = 0
 
@@ -166,8 +189,6 @@ class Mark2(MycroftSkill):
             # Handle volume setting via I2C
             self.add_event('mycroft.volume.set', self.on_volume_set)
             self.add_event('mycroft.volume.get', self.on_volume_get)
-            self.add_event('mycroft.volume.duck', self.on_volume_duck)
-            self.add_event('mycroft.volume.unduck', self.on_volume_unduck)
 
             # Show loading screen while starting up skills.
             # self.gui['state'] = 'loading'
@@ -212,26 +233,17 @@ class Mark2(MycroftSkill):
     def on_volume_set(self, message):
         """ Force vol between 0.0 and 1.0. """
         vol = message.data.get("percent", 0.5)
-        vol = 0.0 if vol < 0.0 else vol
-        vol = 1.0 if vol > 1.0 else vol
+        vol = clip(vol, 0.0, 1.0)
+
         self.volume = vol
         self.muted = False
         self.set_hardware_volume(vol)
+        self.show_volume = True
 
     def on_volume_get(self, message):
         """ Handle request for current volume. """
         self.bus.emit(message.response(data={'percent': self.volume,
                                              'muted': self.muted}))
-
-    def on_volume_duck(self, message):
-        """ Handle ducking event by setting the output to 0. """
-        self.muted = True
-        self.set_hardware_volume(0)
-
-    def on_volume_unduck(self, message):
-        """ Handle ducking event by setting the output to previous value. """
-        self.muted = False
-        self.set_hardware_volume(self.volume)
 
     def set_hardware_volume(self, pct):
         """ Set the volume on hardware (which supports levels 0-63).
@@ -239,13 +251,14 @@ class Mark2(MycroftSkill):
             Arguments:
                 pct (int): audio volume (0.0 - 1.0).
         """
+        vol = int(VOL_SMAX * pct + VOL_OFFSET) if pct >= 0.01 else VOL_ZERO
         self.log.debug('Setting hardware volume to: {}'.format(pct))
         try:
             subprocess.call(['/usr/sbin/i2cset',
-                             '-y',                 # force a write
-                             '3',                  # i2c bus number
-                             '0x4b',               # stereo amp device address
-                             str(int(63 * pct))])  # volume level, 0-63
+                             '-y',                  # force a write
+                             str(self.i2c_channel), # i2c bus number
+                             '0x4b',                # stereo amp device address
+                             str(int(63 * pct))])   # volume level, 0-63
         except Exception as e:
             self.log.error('Couldn\'t set volume. ({})'.format(e))
 
@@ -253,12 +266,11 @@ class Mark2(MycroftSkill):
         # Get the volume from hardware
         try:
             vol = subprocess.check_output(['/usr/sbin/i2cget', '-y',
-                                           '3', '0x4b'])
+                                           str(self.i2c_channel), '0x4b'])
             # Convert the returned hex value from i2cget
-            i = int(vol, 16)
-            i = 0 if i < 0 else i
-            i = 63 if i > 63 else i
-            self.volume = i / 63.0
+            hw_vol = int(vol, 16)
+            hw_vol = clip(hw_vol, 0, 63)
+            self.volume = clip((hw_vol - VOL_OFFSET) / VOL_SMAX, 0.0, 1.0)
         except subprocess.CalledProcessError as e:
             self.log.info('I2C Communication error:  {}'.format(repr(e)))
         except FileNotFoundError:
