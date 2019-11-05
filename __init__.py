@@ -154,6 +154,9 @@ class Mark2(MycroftSkill):
             self.bus.on('mycroft.mark2.register_idle',
                         self.on_register_idle)
 
+            self.add_event('mycroft.mark2.reset_idle',
+                           self.restore_idle_screen)
+
             # Handle device settings events
             self.add_event('mycroft.device.settings',
                            self.handle_device_settings)
@@ -373,12 +376,15 @@ class Mark2(MycroftSkill):
                 amplitude is not None):
             self.gui['volume'] = amplitude
 
-    def stop(self, message=None):
-        """ Clear override_idle and stop visemes. """
+    def restore_idle_screen(self, message):
         if (self.override_idle and
                 time.monotonic() - self.override_idle[1] > 2):
             self.override_idle = None
             self.show_idle_screen()
+
+    def stop(self, message=None):
+        """ Clear override_idle and stop visemes. """
+        self.restore_idle_screen()
         self.gui['viseme'] = {'start': 0, 'visemes': []}
         return False
 
@@ -431,6 +437,7 @@ class Mark2(MycroftSkill):
                 self.log.info('Cancelling Idle screen')
                 self.cancel_idle_event()
                 self.override_idle = (message, time.monotonic())
+
             elif isinstance(override_idle, int):
                 # Set the indicated idle timeout
                 self.log.info('Overriding idle timer to'
@@ -438,6 +445,9 @@ class Mark2(MycroftSkill):
                 self.start_idle_event(override_idle)
             elif (message.data['page'] and
                     not message.data['page'][0].endswith('idle.qml')):
+                if override_idle is False:
+                    # Remove the idle override page if override is set to false
+                    self.override_idle = None
                 # Set default idle screen timer
                 self.start_idle_event(30)
 
