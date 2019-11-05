@@ -255,10 +255,10 @@ class Mark2(MycroftSkill):
         self.log.debug('Setting hardware volume to: {}'.format(pct))
         try:
             subprocess.call(['/usr/sbin/i2cset',
-                             '-y',                  # force a write
-                             str(self.i2c_channel), # i2c bus number
-                             '0x4b',                # stereo amp device address
-                             str(int(63 * pct))])   # volume level, 0-63
+                             '-y',                   # force a write
+                             str(self.i2c_channel),  # i2c bus number
+                             '0x4b',                 # stereo amp device addr
+                             str(int(63 * vol))])    # volume level, 0-63
         except Exception as e:
             self.log.error('Couldn\'t set volume. ({})'.format(e))
 
