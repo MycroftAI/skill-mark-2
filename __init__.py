@@ -42,6 +42,12 @@ VOL_SMAX = VOL_MAX - VOL_OFFSET
 VOL_ZERO = 0
 
 
+def compare_origin(m1, m2):
+    origin1 = m1.data['__from'] if isinstance(m1, Message) else m1
+    origin2 = m2.data['__from'] if isinstance(m2, Message) else m2
+    return origin1 == origin2
+
+
 def clip(val, minimum, maximum):
     """ Clips / limits a value to a specific range.
         Arguments:
@@ -438,14 +444,17 @@ class Mark2(MycroftSkill):
                 self.cancel_idle_event()
                 self.override_idle = (message, time.monotonic())
 
-            elif isinstance(override_idle, int):
+            elif isinstance(override_idle, int) and override_idle is not False:
                 # Set the indicated idle timeout
                 self.log.info('Overriding idle timer to'
                               ' {} seconds'.format(override_idle))
                 self.start_idle_event(override_idle)
             elif (message.data['page'] and
                     not message.data['page'][0].endswith('idle.qml')):
-                if override_idle is False:
+                # Check if the show_page deactivates a previous idle override
+                # This is only possible if the page is from the same skill
+                if (override_idle is False and
+                        compare_origin(message, self.override_idle[0])):
                     # Remove the idle override page if override is set to false
                     self.override_idle = None
                 # Set default idle screen timer
