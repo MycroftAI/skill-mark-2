@@ -211,7 +211,7 @@ class Mark2(MycroftSkill):
         # Update use of wake-up beep
         self._sync_wake_beep_setting()
 
-        self.settings.set_changed_callback(self.on_websettings_changed)
+        self.settings_change_callback = self.on_websettings_changed
 
     def start_listening_thread(self):
         # Start listening thread
