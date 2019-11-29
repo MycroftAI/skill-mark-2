@@ -386,7 +386,7 @@ class Mark2(MycroftSkill):
                 amplitude is not None):
             self.gui['volume'] = amplitude
 
-    def restore_idle_screen(self, message):
+    def restore_idle_screen(self, _=None):
         if (self.override_idle and
                 time.monotonic() - self.override_idle[1] > 2):
             self.override_idle = None
