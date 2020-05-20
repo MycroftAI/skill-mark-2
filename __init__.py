@@ -97,6 +97,8 @@ class Mark2(MycroftSkill):
         self.muted = False
         self.get_hardware_volume()       # read from the device
 
+        self.idle_override_set_time = time.monotonic()
+
     def setup_mic_listening(self):
         """ Initializes PyAudio, starts an input stream and launches the
             listening thread.
@@ -394,7 +396,9 @@ class Mark2(MycroftSkill):
 
     def stop(self, message=None):
         """ Clear override_idle and stop visemes. """
-        self.restore_idle_screen()
+        self.log.info('Stop received')
+        if time.monotonic() > self.idle_override_set_time + 7:
+            self.restore_idle_screen()
         self.gui['viseme'] = {'start': 0, 'visemes': []}
         return False
 
@@ -444,12 +448,14 @@ class Mark2(MycroftSkill):
             override_idle = message.data.get('__idle')
             if override_idle is True:
                 # Disable idle screen
+                self.idle_override_set_time = time.monotonic()
                 self.log.info('Cancelling Idle screen')
                 self.cancel_idle_event()
                 self.override_idle = (message, time.monotonic())
 
             elif isinstance(override_idle, int) and override_idle is not False:
                 # Set the indicated idle timeout
+                self.idle_override_set_time = time.monotonic()
                 self.log.info('Overriding idle timer to'
                               ' {} seconds'.format(override_idle))
                 self.start_idle_event(override_idle)
@@ -457,6 +463,7 @@ class Mark2(MycroftSkill):
                     not message.data['page'][0].endswith('idle.qml')):
                 # Check if the show_page deactivates a previous idle override
                 # This is only possible if the page is from the same skill
+                self.log.info('Cancelling idle override')
                 if (override_idle is False and
                         compare_origin(message, self.override_idle[0])):
                     # Remove the idle override page if override is set to false
