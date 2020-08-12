@@ -73,6 +73,7 @@ class Mark2(MycroftSkill):
 
         self.idle_screens = {}
         self.override_idle = None
+        self.override_animations = None
         self.idle_next = 0  # Next time the idle screen should trigger
         self.idle_lock = Lock()
 
@@ -443,6 +444,16 @@ class Mark2(MycroftSkill):
         if 'mark-2' not in message.data.get('__from', ''):
             # Some skill other than the handler is showing a page
             self.has_show_page = True
+            
+            # If a skill overrides the animations do not show any
+            override_animations = message.data.get('__animations')
+            if override_animations is True:
+                # Disable animations
+                self.log.info('Disabling all animations for page')
+                self.override_animations = True
+            elif override_animations is False:
+                self.log.info('Displaying all animations for page')
+                self.override_animations = False
 
             # If a skill overrides the idle do not switch page
             override_idle = message.data.get('__idle')
@@ -586,16 +597,21 @@ class Mark2(MycroftSkill):
             self.max_amplitude /= 2
 
         self.start_listening_thread()
-        # Show listening page
-        self.gui['state'] = 'listening'
-        self.gui.show_page('all.qml')
+        if self.override_animations is True:
+            pass
+        else:
+            # Show listening page
+            self.gui['state'] = 'listening'
+            self.gui.show_page('all.qml')
 
     def handle_listener_ended(self, message):
-        """ When listening has ended show the thinking animation. """
-        self.has_show_page = False
-        self.gui['state'] = 'thinking'
-        self.gui.show_page('all.qml')
-        self.stop_listening_thread()
+        if self.override_animations is True:
+            pass
+        else:
+            self.has_show_page = False
+            self.gui['state'] = 'thinking'
+            self.gui.show_page('all.qml')
+            self.stop_listening_thread()
 
     def handle_failed_stt(self, message):
         """ No discernable words were transcribed. Show idle screen again. """
