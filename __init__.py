@@ -444,7 +444,7 @@ class Mark2(MycroftSkill):
         if 'mark-2' not in message.data.get('__from', ''):
             # Some skill other than the handler is showing a page
             self.has_show_page = True
-            
+
             # If a skill overrides the animations do not show any
             override_animations = message.data.get('__animations', False)
             if override_animations:
