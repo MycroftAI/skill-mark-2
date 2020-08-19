@@ -131,7 +131,7 @@ class Mark2(MycroftSkill):
                            self.handle_internet_connected)
 
             # Handle the 'waking' visual
-            self.add_event('recognizer_loop:record_begin',
+            self.add_event('recognizer_loop:wakeword',
                            self.handle_listener_started)
             self.add_event('recognizer_loop:record_end',
                            self.handle_listener_ended)
