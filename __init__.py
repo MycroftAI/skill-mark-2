@@ -138,6 +138,23 @@ class RestingScreen:
         if time.monotonic() > self.override_set_time + 7:
             self.restore()
 
+    def override(self, message=None):
+        """Override the resting screen.
+
+        Arguments:
+            message: Optional message to use for to restore
+                     the expected override screen after
+                     another screen has been displayed.
+        """
+        self.override_set_time = time.monotonic()
+        if message:
+            self.override_idle = (message, time.monotonic())
+
+    def cancel_override(self):
+        """Remove the override screen."""
+        self.override_idle = None
+
+
 class Mark2(MycroftSkill):
     """
         The Mark2 skill handles much of the gui activities related to
@@ -503,20 +520,13 @@ class Mark2(MycroftSkill):
             override_idle = message.data.get('__idle')
             if override_idle is True:
                 # Disable idle screen
-                self.resting_screen.override_set_time = (
-                    time.monotonic()
-                )
                 self.log.info('Cancelling Idle screen')
                 self.cancel_idle_event()
-                self.resting_screen.override_idle = (
-                    message, time.monotonic()
-                )
-
+                self.resting_screen.override(message)
             elif isinstance(override_idle, int) and override_idle is not False:
-                # Set the indicated idle timeout
-                self.resting_screen.override_set_time = time.monotonic()
                 self.log.info('Overriding idle timer to'
                               ' {} seconds'.format(override_idle))
+                self.resting_screen.override(None)
                 self.start_idle_event(override_idle)
             elif (message.data['page'] and
                     not message.data['page'][0].endswith('idle.qml')):
@@ -526,7 +536,7 @@ class Mark2(MycroftSkill):
                 if (override_idle is False and
                         compare_origin(message, self.override_idle[0])):
                     # Remove the idle override page if override is set to false
-                    self.override_idle = None
+                    self.resting_screen.cancel_override()
                 # Set default idle screen timer
                 self.start_idle_event(30)
 
