@@ -634,7 +634,7 @@ class Mark2(MycroftSkill):
             LocalConf, USER_CONFIG, Configuration
         )
         config = Configuration.get()
-        use_beep = self.settings.get('use_listening_beep') is True
+        use_beep = self.settings.get('use_listening_beep', False)
         if not config['confirm_listening'] == use_beep:
             # Update local (user) configuration setting
             new_config = {
@@ -704,7 +704,7 @@ class Mark2(MycroftSkill):
                 speak (bool): when True, speak a confirmation
         """
         # TODO CHANGE THE BRIGHTNESS
-        if speak is True:
+        if speak:
             percent = int(float(level) * float(100) / float(30))
             self.speak_dialog(
                 'brightness.set', data={'val': str(percent) + '%'})
@@ -714,7 +714,7 @@ class Mark2(MycroftSkill):
         percent = self.parse_brightness(brightness)
         if percent is None:
             self.speak_dialog('brightness.not.found.final')
-        elif int(percent) is -1:
+        elif int(percent) == -1:
             self.handle_auto_brightness(None)
         else:
             self.auto_brightness = False
@@ -816,7 +816,7 @@ class Mark2(MycroftSkill):
             Arguments:
                 message (Message): messagebus message
         """
-        if self.auto_brightness is True:
+        if self.auto_brightness:
             time_of_day = message.data[0]
             level = message.data[1]
             self.cancel_scheduled_event(time_of_day)
