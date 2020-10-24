@@ -19,11 +19,10 @@ from pytz import timezone
 from datetime import datetime
 
 from mycroft.messagebus.message import Message
-from mycroft.skills.core import MycroftSkill
 from mycroft.util import get_ipc_directory
 from mycroft.util.log import LOG
 from mycroft.util.parse import normalize
-from mycroft import intent_file_handler
+from mycroft import MycroftSkill, intent_handler
 
 import os
 import subprocess
@@ -762,7 +761,7 @@ class Mark2(MycroftSkill):
             self.auto_brightness = False
             self.set_screen_brightness(self.percent_to_level(percent))
 
-    @intent_file_handler('brightness.intent')
+    @intent_handler('brightness.intent')
     def handle_brightness(self, message):
         """ Intent handler to set custom screen brightness.
 
@@ -834,7 +833,7 @@ class Mark2(MycroftSkill):
             self.schedule_event(self._handle_screen_brightness_event, d_time,
                                 data=data, name=time_of_day)
 
-    @intent_file_handler('brightness.auto.intent')
+    @intent_handler('brightness.auto.intent')
     def handle_auto_brightness(self, message):
         """ brightness varies depending on time of day
 
@@ -869,20 +868,20 @@ class Mark2(MycroftSkill):
     #####################################################################
     # Device Settings
 
-    @intent_file_handler('device.settings.intent')
+    @intent_handler('device.settings.intent')
     def handle_device_settings(self, message):
         """ Display device settings page. """
         self.gui['state'] = 'settings/settingspage'
         self.gui.show_page('all.qml')
 
-    @intent_file_handler('device.wifi.settings.intent')
+    @intent_handler('device.wifi.settings.intent')
     def handle_show_wifi_screen_intent(self, message):
         """ display network selection page. """
         self.gui.clear()
         self.gui['state'] = 'settings/networking/SelectNetwork'
         self.gui.show_page('all.qml')
 
-    @intent_file_handler('device.homescreen.settings.intent')
+    @intent_handler('device.homescreen.settings.intent')
     def handle_device_homescreen_settings(self, message):
         """
             display homescreen settings page
@@ -894,13 +893,13 @@ class Mark2(MycroftSkill):
         self.gui['state'] = 'settings/homescreen_settings'
         self.gui.show_page('all.qml')
 
-    @intent_file_handler('device.ssh.settings.intent')
+    @intent_handler('device.ssh.settings.intent')
     def handle_device_ssh_settings(self, message):
         """ Display ssh settings page. """
         self.gui['state'] = 'settings/ssh_settings'
         self.gui.show_page('all.qml')
 
-    @intent_file_handler('device.reset.settings.intent')
+    @intent_handler('device.reset.settings.intent')
     def handle_device_factory_reset_settings(self, message):
         """ Display device factory reset settings page. """
         self.gui['state'] = 'settings/factoryreset_settings'
