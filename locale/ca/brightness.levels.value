@@ -1,0 +1,9 @@
+# nom, percentatge
+# NOTA: Afegeix també a vocab/xx-xx/brightness.entity
+màxim, 100
+brillant,75
+mig,50
+fosc,25
+baix,10
+auto,-1
+automàtic,-1
