@@ -192,7 +192,11 @@ class Mark2(MycroftSkill):
         self.gui["viseme"] = {"start": 0, "visemes": []}
 
         try:
+            # Handle network connection events
             self.add_event("mycroft.internet.connected", self.handle_internet_connected)
+            self.add_event("system.wifi.setup.hotspot_activated", self.handle_wifi_setup_started)
+            self.add_event("system.wifi.setup.network_selection", self.handle_wifi_setup_network_selection)
+            self.add_event("system.wifi.setup.connected", self.handle_wifi_setup_connected)
 
             # Handle the 'waking' visual
             self.add_event("recognizer_loop:wakeword", self.handle_listener_started)
@@ -566,11 +570,29 @@ class Mark2(MycroftSkill):
         self.resting_screen.show()
 
     #####################################################################
-    # Manage network connction feedback
+    # Manage network connection including wifi setup
 
     def handle_internet_connected(self, message):
         """ System came online later after booting. """
         self.enclosure.mouth_reset()
+
+    def handle_wifi_setup_started(self, message):
+        """Provide instructions for setting up wifi."""
+        text = self.translate('device.wifi.setup.started')
+        self.speak_dialog(text)
+        self.gui.show_text(text)
+
+    def handle_wifi_setup_network_selection(self, message):
+        """Prompt user to select network and login."""
+        text = self.translate('device.wifi.setup.network.selection')
+        self.speak_dialog(text)
+        self.gui.show_text(text)
+
+    def handle_wifi_setup_connected(self, message):
+        """Wifi setup complete, network is connected."""
+        text = self.translate('device.wifi.setup.complete')
+        self.speak_dialog(text)
+        self.gui.show_text(text)
 
     #####################################################################
     # Web settings
