@@ -502,6 +502,7 @@ class Mark2(MycroftSkill):
     #####################################################################
     # Manage resting screen visual state
     def cancel_idle_event(self):
+        """Cancel the event monitoring current system idle time."""
         self.resting_screen.next = 0
         self.cancel_scheduled_event("IdleCheck")
 
