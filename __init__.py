@@ -34,27 +34,10 @@ from .listener import (get_rms, open_mic_stream, read_file_from,
                        INPUT_FRAMES_PER_BLOCK)
 
 
-# Definitions used when sending volume over i2c
-VOL_MAX = 30
-VOL_OFFSET = 15
-VOL_SMAX = VOL_MAX - VOL_OFFSET
-VOL_ZERO = 0
-
-
 def compare_origin(m1, m2):
     origin1 = m1.data['__from'] if isinstance(m1, Message) else m1
     origin2 = m2.data['__from'] if isinstance(m2, Message) else m2
     return origin1 == origin2
-
-
-def clip(val, minimum, maximum):
-    """ Clips / limits a value to a specific range.
-        Arguments:
-            val: value to be limited
-            minimum: minimum allowed value
-            maximum: maximum allowed value
-    """
-    return min(max(val, minimum), maximum)
 
 
 class RestingScreen:
@@ -165,15 +148,14 @@ class Mark2(MycroftSkill):
     def __init__(self):
         super().__init__('Mark2')
 
-        self.i2c_channel = 1
-
         self.settings['auto_brightness'] = False
         self.settings['use_listening_beep'] = True
 
         self.has_show_page = False  # resets with each handler
         self.override_animations = False
+        self.resting_screen = None
 
-        # Volume indicatior
+        # Mic level indicatior
         self.thread = None
         self.pa = pyaudio.PyAudio()
         try:
@@ -183,12 +165,6 @@ class Mark2(MycroftSkill):
             self.listener_file = None
             self.st_results = None
         self.max_amplitude = 0.001
-
-        # System volume
-        self.volume = 0.5
-        self.muted = False
-        self.get_hardware_volume()       # read from the device
-        self.resting_screen = None
 
     def setup_mic_listening(self):
         """ Initializes PyAudio, starts an input stream and launches the
@@ -210,8 +186,6 @@ class Mark2(MycroftSkill):
                                             self.settings)
 
         enclosure_info = self.config_core.get('enclosure', {})
-        self.i2c_channel = enclosure_info.get('i2c_channel',
-                                              self.i2c_channel)
 
         self.brightness_dict = self.translate_namedvalues('brightness.levels')
         self.gui['volume'] = 0
@@ -290,10 +264,6 @@ class Mark2(MycroftSkill):
             self.add_event('system.reboot', self.handle_system_reboot)
             self.add_event('system.shutdown', self.handle_system_shutdown)
 
-            # Handle volume setting via I2C
-            self.add_event('mycroft.volume.set', self.on_volume_set)
-            self.add_event('mycroft.volume.get', self.on_volume_get)
-
             # Show loading screen while starting up skills.
             # self.gui['state'] = 'loading'
             # self.gui.show_page('all.qml')
@@ -331,60 +301,6 @@ class Mark2(MycroftSkill):
     def handle_system_shutdown(self, message):
         subprocess.call(['/usr/bin/systemctl', 'poweroff'])
 
-    ###################################################################
-    # System volume
-
-    def on_volume_set(self, message):
-        """ Force vol between 0.0 and 1.0. """
-        vol = message.data.get("percent", 0.5)
-        vol = clip(vol, 0.0, 1.0)
-
-        self.volume = vol
-        self.muted = False
-        self.set_hardware_volume(vol)
-        self.show_volume = True
-
-    def on_volume_get(self, message):
-        """ Handle request for current volume. """
-        self.bus.emit(message.response(data={'percent': self.volume,
-                                             'muted': self.muted}))
-
-    def set_hardware_volume(self, pct):
-        """ Set the volume on hardware (which supports levels 0-63).
-
-            Arguments:
-                pct (int): audio volume (0.0 - 1.0).
-        """
-        vol = int(VOL_SMAX * pct + VOL_OFFSET) if pct >= 0.01 else VOL_ZERO
-        self.log.debug('Setting hardware volume to: {}'.format(pct))
-
-        command = ['i2cset',
-                   '-y',                   # force a write
-                   str(self.i2c_channel),  # i2c bus number
-                   '0x4b',                 # stereo amp device addr
-                   str(vol)]     # volume level, 0-63
-        self.log.info(' '.join(command))
-        try:
-            subprocess.call(command)
-        except Exception as e:
-            self.log.error('Couldn\'t set volume. ({})'.format(e))
-
-    def get_hardware_volume(self):
-        # Get the volume from hardware
-        command = ['i2cget', '-y', str(self.i2c_channel), '0x4b']
-        self.log.info(' '.join(command))
-        try:
-            vol = subprocess.check_output(command)
-            # Convert the returned hex value from i2cget
-            hw_vol = int(vol, 16)
-            hw_vol = clip(hw_vol, 0, 63)
-            self.volume = clip((hw_vol - VOL_OFFSET) / VOL_SMAX, 0.0, 1.0)
-        except subprocess.CalledProcessError as e:
-            self.log.info('I2C Communication error:  {}'.format(repr(e)))
-        except FileNotFoundError:
-            self.log.info('i2cget couldn\'t be found')
-        except Exception:
-            self.log.info('UNEXPECTED VOLUME RESULT:  {}'.format(vol))
 
     ###################################################################
     # Idle screen mechanism
