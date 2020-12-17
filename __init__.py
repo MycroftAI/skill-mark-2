@@ -157,6 +157,7 @@ class Mark2(MycroftSkill):
         # Mic level indicatior
         self.thread = None
         self.pa = pyaudio.PyAudio()
+        self.error_count = 0
         try:
             self.listener_file = os.path.join(get_ipc_directory(), "mic_level")
             self.st_results = os.stat(self.listener_file)
@@ -321,8 +322,8 @@ class Mark2(MycroftSkill):
             block = self.stream.read(INPUT_FRAMES_PER_BLOCK)
         except IOError as e:
             # damn
-            self.errorcount += 1
-            self.log.error("{} Error recording: {}".format(self.errorcount, e))
+            self.error_count += 1
+            self.log.error("{} Error recording: {}".format(self.error_count, e))
             return None
 
         amplitude = get_rms(block)
