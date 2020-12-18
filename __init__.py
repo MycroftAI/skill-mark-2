@@ -39,6 +39,13 @@ def compare_origin(m1, m2):
     origin2 = m2.data["__from"] if isinstance(m2, Message) else m2
     return origin1 == origin2
 
+# Mycroft Colors
+blue = "#22A7F0"
+blue_dark = "#2C3E50"
+blue_pale = "#8CE0FE"
+green = "#40DBB0"
+orange = "#FD9E66"
+yellow = "#FEE255"
 
 class RestingScreen:
     """Implementation of functionallity around resting screens.
@@ -590,9 +597,11 @@ class Mark2(MycroftSkill):
 
     def handle_wifi_setup_connected(self, message):
         """Wifi setup complete, network is connected."""
-        text = self.translate('device.wifi.setup.complete')
-        self.speak_dialog(text)
-        self.gui.show_text(text)
+        self.speak_dialog('device.wifi.setup.complete')
+        self.gui["icon"] = "check-circle.svg"
+        self.gui["label"] = "Connected"
+        self.gui["bgColor"] = green
+        self.gui.show_page("status.qml")
 
     #####################################################################
     # Web settings
