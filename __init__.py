@@ -219,6 +219,10 @@ class Mark2(MycroftSkill):
             self.bus.on("mycroft.mark2.register_idle", self.resting_screen.on_register)
 
             self.add_event("mycroft.mark2.reset_idle", self.resting_screen.restore)
+            # TODO move resting screen to Enclosure
+            # TODO consolidate bus message format
+            # - this message is set to be consistent with a handler below.
+            self.add_event("mycroft.device.show.idle", self.resting_screen.show)
 
             # Handle device settings events
             self.add_event("mycroft.device.settings", self.handle_device_settings)
