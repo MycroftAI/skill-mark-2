@@ -31,8 +31,6 @@ import subprocess
 import pyaudio
 from threading import Thread, Lock
 
-from .listener import get_rms, open_mic_stream, read_file_from, INPUT_FRAMES_PER_BLOCK
-
 
 def compare_origin(m1, m2):
     origin1 = m1.data["__from"] if isinstance(m1, Message) else m1
@@ -137,11 +135,13 @@ class RestingScreen:
 
 class Mark2(MycroftSkill):
     """
-    The Mark2 skill handles much of the gui activities related to
-    Mycroft's core functionality. This includes showing "listening",
-    "thinking", and "speaking" faces as well as more complicated things
-    such as switching to the selected resting face and handling
-    system signals.
+    The Mark2 skill handles much of the gui activities related to Mycroft's
+    core functionality. This includes showing "speaking" faces as well as
+    more complicated things such as switching to the selected resting face
+    and handling system signals.
+
+    # TODO move most things to enclosure / HAL. Only voice interaction should
+      reside in the Skill.
     """
 
     def __init__(self):
@@ -153,28 +153,6 @@ class Mark2(MycroftSkill):
         self.has_show_page = False  # resets with each handler
         self.override_animations = False
         self.resting_screen = None
-
-        # Mic level indicatior
-        self.thread = None
-        self.pa = pyaudio.PyAudio()
-        self.error_count = 0
-        try:
-            self.listener_file = os.path.join(get_ipc_directory(), "mic_level")
-            self.st_results = os.stat(self.listener_file)
-        except Exception:
-            self.listener_file = None
-            self.st_results = None
-        self.max_amplitude = 0.001
-
-    def setup_mic_listening(self):
-        """Initializes PyAudio, starts an input stream and launches the
-        listening thread.
-        """
-        listener_conf = self.config_core["listener"]
-        self.stream = open_mic_stream(
-            self.pa, listener_conf.get("device_index"), listener_conf.get("device_name")
-        )
-        self.amplitude = 0
 
     def initialize(self):
         """Perform initalization.
@@ -197,12 +175,6 @@ class Mark2(MycroftSkill):
             self.add_event("system.wifi.setup.hotspot_activated", self.handle_wifi_setup_started)
             self.add_event("system.wifi.setup.network_selection", self.handle_wifi_setup_network_selection)
             self.add_event("system.wifi.setup.connected", self.handle_wifi_setup_connected)
-
-            # Handle the 'waking' visual
-            self.add_event("recognizer_loop:wakeword", self.handle_listener_started)
-            self.add_event("mycroft.mic.listen", self.handle_listener_started)
-            self.add_event("recognizer_loop:record_end", self.handle_listener_ended)
-            self.add_event("mycroft.speech.recognition.unknown", self.handle_failed_stt)
 
             # Handle the 'busy' visual
             self.bus.on("mycroft.skill.handler.start", self.on_handler_started)
@@ -281,20 +253,6 @@ class Mark2(MycroftSkill):
 
         self.settings_change_callback = self.on_websettings_changed
 
-    def start_listening_thread(self):
-        # Start listening thread
-        if not self.thread:
-            self.running = True
-            self.thread = Thread(target=self.listen_thread)
-            self.thread.daemon = True
-            self.thread.start()
-
-    def stop_listening_thread(self):
-        if self.thread:
-            self.running = False
-            self.thread.join()
-            self.thread = None
-
     ###################################################################
     # System events
     def handle_system_reboot(self, message):
@@ -315,68 +273,6 @@ class Mark2(MycroftSkill):
         time.sleep(1)
         self.resting_screen.collect()
 
-    def listen_thread(self):
-        """ listen on mic input until self.running is False. """
-        self.setup_mic_listening()
-        self.log.debug("Starting listening")
-        while self.running:
-            self.listen()
-        self.stream.close()
-        self.log.debug("Listening stopped")
-
-    def get_audio_level(self):
-        """ Get level directly from audio device. """
-        try:
-            block = self.stream.read(INPUT_FRAMES_PER_BLOCK)
-        except IOError as e:
-            # damn
-            self.error_count += 1
-            self.log.error("{} Error recording: {}".format(self.error_count, e))
-            return None
-
-        amplitude = get_rms(block)
-        result = int(amplitude / ((self.max_amplitude) + 0.001) * 15)
-        self.max_amplitude = max(amplitude, self.max_amplitude)
-        return result
-
-    def get_listener_level(self):
-        """ Get level from IPC file created by listener. """
-        time.sleep(0.05)
-        if not self.listener_file:
-            try:
-                self.listener_file = os.path.join(get_ipc_directory(), "mic_level")
-            except FileNotFoundError:
-                return None
-
-        try:
-            st_results = os.stat(self.listener_file)
-
-            if (
-                not st_results.st_ctime == self.st_results.st_ctime
-                or not st_results.st_mtime == self.st_results.st_mtime
-            ):
-                ret = read_file_from(self.listener_file, 0)
-                self.st_results = st_results
-                if ret is not None:
-                    if ret > self.max_amplitude:
-                        self.max_amplitude = ret
-                    ret = int(ret / self.max_amplitude * 10)
-                return ret
-        except Exception as e:
-            self.log.error(repr(e))
-        return None
-
-    def listen(self):
-        """ Read microphone level and store rms into self.gui['volume']. """
-        amplitude = self.get_audio_level()
-        # amplitude = self.get_listener_level()
-
-        if (
-            self.gui
-            and ("volume" not in self.gui or self.gui["volume"] != amplitude)
-            and amplitude is not None
-        ):
-            self.gui["volume"] = amplitude
 
     def stop(self, message=None):
         """ Clear override_idle and stop visemes. """
@@ -396,8 +292,6 @@ class Mark2(MycroftSkill):
         self.bus.remove("gui.page.show", self.on_gui_page_show)
         self.bus.remove("gui.page_interaction", self.on_gui_page_interaction)
         self.bus.remove("mycroft.mark2.register_idle", self.on_register)
-
-        self.stop_listening_thread()
 
     #####################################################################
     # Manage "busy" visual
@@ -540,38 +434,6 @@ class Mark2(MycroftSkill):
                 self.log.info("Showing idle screen in " "{} seconds".format(offset))
             except Exception as e:
                 self.log.exception(repr(e))
-
-    def handle_listener_started(self, message):
-        """Shows listener page after wakeword is triggered.
-
-        Starts countdown to show the idle page.
-        """
-        # Start idle timer
-        self.cancel_idle_event()
-        self.start_idle_event(weak=True)
-
-        # Lower the max by half at the start of listener to make sure
-        # loud noices doesn't make the level stick to much
-        if self.max_amplitude > 0.001:
-            self.max_amplitude /= 2
-
-        self.start_listening_thread()
-        if not self.override_animations:
-            # Show listening page
-            self.gui["state"] = "listening"
-            self.gui.show_page("all.qml")
-
-    def handle_listener_ended(self, message):
-        """ When listening has ended show the thinking animation. """
-        if not self.override_animations:
-            self.has_show_page = False
-            self.gui["state"] = "thinking"
-            self.gui.show_page("all.qml")
-            self.stop_listening_thread()
-
-    def handle_failed_stt(self, message):
-        """ No discernable words were transcribed. Show idle screen again. """
-        self.resting_screen.show()
 
     #####################################################################
     # Manage network connection including wifi setup
