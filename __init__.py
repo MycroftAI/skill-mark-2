@@ -341,7 +341,7 @@ class Mark2(MycroftSkill):
                 # This is only possible if the page is from the same skill
                 self.log.info("Cancelling idle override")
                 if override_idle is False and compare_origin(
-                    message, self.override_idle[0]
+                    message, self.resting_screen.override_idle[0]
                 ):
                     # Remove the idle override page if override is set to false
                     self.resting_screen.cancel_override()
