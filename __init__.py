@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import astral
 import time
-import arrow
-from pytz import timezone
 from datetime import datetime
+import os
+import subprocess
+from threading import Thread, Lock
+
+from pytz import timezone
+import arrow
+import astral
+import pyaudio
 
 from mycroft.configuration.config import LocalConf, USER_CONFIG, Configuration
 from mycroft.messagebus.message import Message
@@ -25,16 +30,10 @@ from mycroft.util.log import LOG
 from mycroft.util.parse import normalize
 from mycroft import MycroftSkill, intent_handler
 
-import os
-import subprocess
 
-import pyaudio
-from threading import Thread, Lock
-
-
-def compare_origin(m1, m2):
-    origin1 = m1.data["__from"] if isinstance(m1, Message) else m1
-    origin2 = m2.data["__from"] if isinstance(m2, Message) else m2
+def compare_origin(msg1, msg2):
+    origin1 = msg1.data["__from"] if isinstance(msg1, Message) else msg1
+    origin2 = msg2.data["__from"] if isinstance(msg2, Message) else msg2
     return origin1 == origin2
 
 
@@ -268,7 +267,6 @@ class Mark2(MycroftSkill):
         """
         time.sleep(1)
         self.resting_screen.collect()
-
 
     def stop(self, _=None):
         """ Clear override_idle and stop visemes. """
@@ -550,15 +548,15 @@ class Mark2(MycroftSkill):
         Returns:
             times (dict): dict with associated (datetime, level)
         """
-        tz = self.location["timezone"]["code"]
+        tz_code = self.location["timezone"]["code"]
         lat = self.location["coordinate"]["latitude"]
         lon = self.location["coordinate"]["longitude"]
         ast_loc = astral.Location()
-        ast_loc.timezone = tz
+        ast_loc.timezone = tz_code
         ast_loc.lattitude = lat
         ast_loc.longitude = lon
 
-        user_set_tz = timezone(tz).localize(datetime.now()).strftime("%Z")
+        user_set_tz = timezone(tz_code).localize(datetime.now()).strftime("%Z")
         device_tz = time.tzname
 
         if user_set_tz in device_tz:
@@ -633,9 +631,9 @@ class Mark2(MycroftSkill):
         for time_of_day, pair in auto_time.items():
             self.schedule_brightness(time_of_day, pair)
             now = arrow.now().timestamp
-            t = arrow.get(pair[0]).timestamp
-            if abs(now - t) < nearest_time_to_now[0]:
-                nearest_time_to_now = (abs(now - t), pair[1], time_of_day)
+            timestamp = arrow.get(pair[0]).timestamp
+            if abs(now - timestamp) < nearest_time_to_now[0]:
+                nearest_time_to_now = (abs(now - timestamp), pair[1], time_of_day)
         self.set_screen_brightness(nearest_time_to_now[1], speak=False)
 
     def _handle_screen_brightness_event(self, message):
@@ -698,13 +696,11 @@ class Mark2(MycroftSkill):
 
     def handle_device_restart_action(self, _):
         """ Device restart action. """
-        self.log.info("PlaceholderRestartAction: "
-                      "This function is not yet implemented")
+        self.log.info("PlaceholderRestartAction: This function is not yet implemented")
 
     def handle_device_poweroff_action(self, _):
         """ Device poweroff action. """
-        self.log.info("PlaceholderShutdownAction: "
-                      "This function is not yet implemented")
+        self.log.info("PlaceholderShutdownAction: This function is not yet implemented")
 
 
 def create_skill():
