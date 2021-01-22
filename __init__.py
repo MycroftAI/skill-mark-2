@@ -703,14 +703,6 @@ class Mark2(MycroftSkill):
         self.gui["state"] = "settings/updatedevice_settings"
         self.gui.show_page("all.qml")
 
-    def handle_device_restart_action(self, _):
-        """ Device restart action. """
-        self.log.info("PlaceholderRestartAction: This function is not yet implemented")
-
-    def handle_device_poweroff_action(self, _):
-        """ Device poweroff action. """
-        self.log.info("PlaceholderShutdownAction: This function is not yet implemented")
-
 
 def create_skill():
     return Mark2()
