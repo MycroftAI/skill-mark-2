@@ -161,8 +161,6 @@ class Mark2(MycroftSkill):
         """
         self.resting_screen = RestingScreen(self.bus, self.gui, self.log, self.settings)
 
-        enclosure_info = self.config_core.get("enclosure", {})
-
         self.brightness_dict = self.translate_namedvalues("brightness.levels")
         self.gui["volume"] = 0
 
