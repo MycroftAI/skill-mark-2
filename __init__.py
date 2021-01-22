@@ -102,7 +102,7 @@ class RestingScreen:
             self.log.info("Showing Idle screen for " "{}".format(self.gui["selected"]))
             screen = self.screens.get(self.gui["selected"])
 
-        self.log.info(screen)
+        self.log.debug(screen)
         if screen:
             self.bus.emit(Message("{}.idle".format(screen)))
 
@@ -153,6 +153,7 @@ class Mark2(MycroftSkill):
         self.has_show_page = False  # resets with each handler
         self.override_animations = False
         self.resting_screen = None
+        self.auto_brightness = None
 
     def initialize(self):
         """Perform initalization.
@@ -271,7 +272,7 @@ class Mark2(MycroftSkill):
 
     def stop(self, _=None):
         """ Clear override_idle and stop visemes. """
-        self.log.info("Stop received")
+        self.log.debug("Stop received")
         self.resting_screen.stop()
         self.gui["viseme"] = {"start": 0, "visemes": []}
         return False
@@ -301,7 +302,7 @@ class Mark2(MycroftSkill):
 
     def on_gui_page_interaction(self, _):
         """ Reset idle timer to 30 seconds when page is flipped. """
-        self.log.info("Resetting idle counter to 30 seconds")
+        self.log.debug("Resetting idle counter to 30 seconds")
         self.start_idle_event(30)
 
     def on_gui_page_show(self, message):
@@ -313,17 +314,17 @@ class Mark2(MycroftSkill):
             override_animations = message.data.get("__animations", False)
             if override_animations:
                 # Disable animations
-                self.log.info("Disabling all animations for page")
+                self.log.debug("Disabling all animations for page")
                 self.override_animations = True
             else:
-                self.log.info("Displaying all animations for page")
+                self.log.debug("Displaying all animations for page")
                 self.override_animations = False
 
             # If a skill overrides the idle do not switch page
             override_idle = message.data.get("__idle")
             if override_idle is True:
                 # Disable idle screen
-                self.log.info("Cancelling Idle screen")
+                self.log.debug("Cancelling Idle screen")
                 self.cancel_idle_event()
                 self.resting_screen.override(message)
             elif isinstance(override_idle, int) and override_idle is not False:
@@ -416,7 +417,7 @@ class Mark2(MycroftSkill):
                 self.log.info("No update, before next time")
                 return
 
-            self.log.info("Starting idle event")
+            self.log.debug("Starting idle event")
             try:
                 if not weak:
                     self.resting_screen.next = time.monotonic() + offset
@@ -426,7 +427,7 @@ class Mark2(MycroftSkill):
                 self.schedule_event(
                     self.resting_screen.show, int(offset), name="IdleCheck"
                 )
-                self.log.info("Showing idle screen in " "{} seconds".format(offset))
+                self.log.debug("Showing idle screen in " "{} seconds".format(offset))
             except Exception as e:
                 self.log.exception(repr(e))
 
@@ -697,11 +698,13 @@ class Mark2(MycroftSkill):
 
     def handle_device_restart_action(self, _):
         """ Device restart action. """
-        self.log.info("PlaceholderRestartAction")
+        self.log.info("PlaceholderRestartAction: "
+                      "This function is not yet implemented")
 
     def handle_device_poweroff_action(self, _):
         """ Device poweroff action. """
-        self.log.info("PlaceholderShutdownAction")
+        self.log.info("PlaceholderShutdownAction: "
+                      "This function is not yet implemented")
 
 
 def create_skill():
