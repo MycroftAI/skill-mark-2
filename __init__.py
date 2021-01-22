@@ -32,6 +32,15 @@ from mycroft import MycroftSkill, intent_handler
 
 
 def compare_origin(msg1, msg2):
+    """Compare the origin Skill of two Messages.
+
+    Arguments:
+        message (Message): Mycroft Message to compare
+        message (Message): Mycroft Message to compare
+
+    Returns:
+        bool: Whether the Messages originate from the same Skill.
+    """
     origin1 = msg1.data["__from"] if isinstance(msg1, Message) else msg1
     origin2 = msg2.data["__from"] if isinstance(msg2, Message) else msg2
     return origin1 == origin2
