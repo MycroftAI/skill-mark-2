@@ -278,13 +278,14 @@ class Mark2(MycroftSkill):
         self.resting_screen.collect()
 
     def stop(self, _=None):
-        """ Clear override_idle and stop visemes. """
+        """Clear override_idle and stop visemes."""
         self.log.debug("Stop received")
         self.resting_screen.stop()
         self.gui["viseme"] = {"start": 0, "visemes": []}
         return False
 
     def shutdown(self):
+        """Cleanly shutdown the Skill removing any manual event handlers"""
         # Gotta clean up manually since not using add_event()
         self.bus.remove("mycroft.skill.handler.start", self.on_handler_started)
         self.bus.remove("recognizer_loop:sleep", self.on_handler_sleep)
