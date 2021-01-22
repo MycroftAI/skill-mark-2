@@ -252,17 +252,17 @@ class Mark2(MycroftSkill):
 
     ###################################################################
     # System events
-    def handle_system_reboot(self, message):
+    def handle_system_reboot(self, _):
         self.speak_dialog("rebooting", wait=True)
         subprocess.call(["/usr/bin/systemctl", "reboot"])
 
-    def handle_system_shutdown(self, message):
+    def handle_system_shutdown(self, _):
         subprocess.call(["/usr/bin/systemctl", "poweroff"])
 
     ###################################################################
     # Idle screen mechanism
 
-    def reset_face(self, message):
+    def reset_face(self, _):
         """Triggered after skills are initialized.
 
         Sets switches from resting "face" to a registered resting screen.
@@ -271,7 +271,7 @@ class Mark2(MycroftSkill):
         self.resting_screen.collect()
 
 
-    def stop(self, message=None):
+    def stop(self, _=None):
         """ Clear override_idle and stop visemes. """
         self.log.info("Stop received")
         self.resting_screen.stop()
@@ -301,7 +301,7 @@ class Mark2(MycroftSkill):
         if "TimeSkill.update_display" in handler:
             return
 
-    def on_gui_page_interaction(self, message):
+    def on_gui_page_interaction(self, _):
         """ Reset idle timer to 30 seconds when page is flipped. """
         self.log.info("Resetting idle counter to 30 seconds")
         self.start_idle_event(30)
@@ -348,16 +348,16 @@ class Mark2(MycroftSkill):
                 # Set default idle screen timer
                 self.start_idle_event(30)
 
-    def on_handler_mouth_reset(self, message):
+    def on_handler_mouth_reset(self, _):
         """ Restore viseme to a smile. """
         pass
 
-    def on_handler_sleep(self, message):
+    def on_handler_sleep(self, _):
         """ Show resting face when going to sleep. """
         self.gui["state"] = "resting"
         self.gui.show_page("all.qml")
 
-    def on_handler_awoken(self, message):
+    def on_handler_awoken(self, _):
         """ Show awake face when sleep ends. """
         self.gui["state"] = "awake"
         self.gui.show_page("all.qml")
@@ -435,7 +435,7 @@ class Mark2(MycroftSkill):
     #####################################################################
     # Manage network
 
-    def handle_internet_connected(self, message):
+    def handle_internet_connected(self, _):
         """ System came online later after booting. """
         self.enclosure.mouth_reset()
 
@@ -622,7 +622,7 @@ class Mark2(MycroftSkill):
             )
 
     @intent_handler("brightness.auto.intent")
-    def handle_auto_brightness(self, message):
+    def handle_auto_brightness(self, _):
         """brightness varies depending on time of day
 
         Arguments:
@@ -657,20 +657,20 @@ class Mark2(MycroftSkill):
     # Device Settings
 
     @intent_handler("device.settings.intent")
-    def handle_device_settings(self, message):
+    def handle_device_settings(self, _):
         """ Display device settings page. """
         self.gui["state"] = "settings/settingspage"
         self.gui.show_page("all.qml")
 
     @intent_handler("device.wifi.settings.intent")
-    def handle_show_wifi_screen_intent(self, message):
+    def handle_show_wifi_screen_intent(self, _):
         """ display network selection page. """
         self.gui.clear()
         self.gui["state"] = "settings/networking/SelectNetwork"
         self.gui.show_page("all.qml")
 
     @intent_handler("device.homescreen.settings.intent")
-    def handle_device_homescreen_settings(self, message):
+    def handle_device_homescreen_settings(self, _):
         """
         display homescreen settings page
         """
@@ -681,27 +681,27 @@ class Mark2(MycroftSkill):
         self.gui.show_page("all.qml")
 
     @intent_handler("device.ssh.settings.intent")
-    def handle_device_ssh_settings(self, message):
+    def handle_device_ssh_settings(self, _):
         """ Display ssh settings page. """
         self.gui["state"] = "settings/ssh_settings"
         self.gui.show_page("all.qml")
 
     @intent_handler("device.reset.settings.intent")
-    def handle_device_factory_reset_settings(self, message):
+    def handle_device_factory_reset_settings(self, _):
         """ Display device factory reset settings page. """
         self.gui["state"] = "settings/factoryreset_settings"
         self.gui.show_page("all.qml")
 
-    def handle_device_update_settings(self, message):
+    def handle_device_update_settings(self, _):
         """ Display device update settings page. """
         self.gui["state"] = "settings/updatedevice_settings"
         self.gui.show_page("all.qml")
 
-    def handle_device_restart_action(self, message):
+    def handle_device_restart_action(self, _):
         """ Device restart action. """
         self.log.info("PlaceholderRestartAction")
 
-    def handle_device_poweroff_action(self, message):
+    def handle_device_poweroff_action(self, _):
         """ Device poweroff action. """
         self.log.info("PlaceholderShutdownAction")
 
