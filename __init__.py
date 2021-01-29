@@ -222,10 +222,10 @@ class Mark2(MycroftSkill):
                 "mycroft.device.settings.update", self.handle_device_update_settings
             )
             self.gui.register_handler(
-                "mycroft.device.settings.restart", self.handle_device_restart_action
+                "mycroft.device.settings.restart", self.handle_system_reboot
             )
             self.gui.register_handler(
-                "mycroft.device.settings.poweroff", self.handle_device_poweroff_action
+                "mycroft.device.settings.poweroff", self.handle_system_shutdown
             )
             self.gui.register_handler(
                 "mycroft.device.settings.wireless", self.handle_show_wifi_screen_intent
