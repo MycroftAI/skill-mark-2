@@ -14,12 +14,6 @@ ListModel {
         settingCall: "show homescreen settings"
     }
     ListElement {
-        settingIcon: "dialog-scripts"
-        settingName: "Enable SSH"
-        settingEvent: "mycroft.device.settings.ssh"
-        settingCall: "show ssh settings" 
-    }
-    ListElement {
         settingIcon: "circular-arrow-shape"
         settingName: "Factory Reset"
         settingEvent: "mycroft.device.settings.reset"
@@ -29,18 +23,6 @@ ListModel {
         settingIcon: "download"
         settingName: "Update Device"
         settingEvent: "mycroft.device.settings.update"
-        settingCall: "" 
-    }
-    ListElement {
-        settingIcon: "view-refresh"
-        settingName: "Reboot"
-        settingEvent: "mycroft.device.settings.restart"
-        settingCall: "" 
-    }
-    ListElement {
-        settingIcon: "lighttable"
-        settingName: "Shutdown"
-        settingEvent: "mycroft.device.settings.poweroff"
         settingCall: "" 
     }
 }
