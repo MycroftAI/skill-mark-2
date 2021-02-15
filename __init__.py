@@ -681,7 +681,9 @@ class Mark2(MycroftSkill):
         """
         display homescreen settings page
         """
-        screens = [{"screenName": s, "screenID": self.screens[s]} for s in self.screens]
+        screens = [{"screenName": s,
+                    "screenID": self.resting_screen.screens[s]}
+                   for s in self.resting_screen.screens]
         self.gui["idleScreenList"] = {"screenBlob": screens}
         self.gui["selectedScreen"] = self.gui["selected"]
         self.gui["state"] = "settings/homescreen_settings"
