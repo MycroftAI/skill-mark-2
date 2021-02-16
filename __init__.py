@@ -212,23 +212,11 @@ class Mark2(MycroftSkill):
                 self.handle_device_homescreen_settings,
             )
             self.gui.register_handler(
-                "mycroft.device.settings.ssh", self.handle_device_ssh_settings
-            )
-            self.gui.register_handler(
                 "mycroft.device.settings.reset",
                 self.handle_device_factory_reset_settings,
             )
             self.gui.register_handler(
                 "mycroft.device.settings.update", self.handle_device_update_settings
-            )
-            self.gui.register_handler(
-                "mycroft.device.settings.restart", self.handle_system_reboot
-            )
-            self.gui.register_handler(
-                "mycroft.device.settings.poweroff", self.handle_system_shutdown
-            )
-            self.gui.register_handler(
-                "mycroft.device.settings.wireless", self.handle_show_wifi_screen_intent
             )
             self.gui.register_handler(
                 "mycroft.device.show.idle", self.resting_screen.show
@@ -669,30 +657,16 @@ class Mark2(MycroftSkill):
         self.gui["state"] = "settings/settingspage"
         self.gui.show_page("all.qml")
 
-    @intent_handler("device.wifi.settings.intent")
-    def handle_show_wifi_screen_intent(self, _):
-        """ display network selection page. """
-        self.gui.clear()
-        self.gui["state"] = "settings/networking/SelectNetwork"
-        self.gui.show_page("all.qml")
-
     @intent_handler("device.homescreen.settings.intent")
     def handle_device_homescreen_settings(self, _):
         """
         display homescreen settings page
         """
-        screens = [{"screenName": s,
-                    "screenID": self.resting_screen.screens[s]}
+        screens = [{"screenName": s, "screenID": self.resting_screen.screens[s]}
                    for s in self.resting_screen.screens]
         self.gui["idleScreenList"] = {"screenBlob": screens}
         self.gui["selectedScreen"] = self.gui["selected"]
         self.gui["state"] = "settings/homescreen_settings"
-        self.gui.show_page("all.qml")
-
-    @intent_handler("device.ssh.settings.intent")
-    def handle_device_ssh_settings(self, _):
-        """ Display ssh settings page. """
-        self.gui["state"] = "settings/ssh_settings"
         self.gui.show_page("all.qml")
 
     @intent_handler("device.reset.settings.intent")
