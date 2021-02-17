@@ -202,6 +202,9 @@ class Mark2(MycroftSkill):
 
             # Handle device settings events
             self.add_event("mycroft.device.settings", self.handle_device_settings)
+            
+            # Handle GUI release events
+            self.add_event("mycroft.gui.screen.close", self.handle_remove_namespace)
 
             # Use Legacy for QuickSetting delegate
             self.gui.register_handler(
@@ -244,7 +247,7 @@ class Mark2(MycroftSkill):
         self._sync_wake_beep_setting()
 
         self.settings_change_callback = self.on_websettings_changed
-
+        
     ###################################################################
     # System events
     def handle_system_reboot(self, _):
@@ -253,6 +256,14 @@ class Mark2(MycroftSkill):
 
     def handle_system_shutdown(self, _):
         subprocess.call(["/usr/bin/systemctl", "poweroff"])
+        
+    def handle_remove_namespace(self, message):
+        get_skill_namespace = message.data.get("skill_id", "")
+        if get_skill_namespace:
+            self.bus.emit(Message("gui.clear.namespace",
+                                  {"__from": get_skill_namespace}))
+        self.resting_screen.cancel_override()
+        self.cancel_scheduled_event("IdleCheck")
 
     ###################################################################
     # Idle screen mechanism
