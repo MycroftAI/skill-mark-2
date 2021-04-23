@@ -27,7 +27,7 @@ Item {
     anchors.fill: parent
     property bool updateAvailable: false
     property var newVersion
-    property var currentVersion: "Mycroft v18.8.10"
+    property var currentVersion: "Mycroft v20.8.1"
         
     Item {
         id: topArea
