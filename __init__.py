@@ -365,8 +365,13 @@ class Mark2(MycroftSkill):
 
     def on_handler_awoken(self, _):
         """ Show awake face when sleep ends. """
+        # TODO move these GUI pages to the Naptime Skill.
         self.gui["state"] = "awake"
         self.gui.show_page("all.qml")
+        # By default Mark II Skill pages override idle
+        time.sleep(10)
+        self.resting_screen.show()
+
 
     def on_handler_complete(self, message):
         """ When a skill finishes executing clear the showing page state. """
