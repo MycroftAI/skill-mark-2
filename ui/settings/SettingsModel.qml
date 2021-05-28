@@ -13,12 +13,12 @@ ListModel {
         settingEvent: "mycroft.device.settings.homescreen"
         settingCall: "show homescreen settings"
     }
-    ListElement {
-        settingIcon: "circular-arrow-shape"
-        settingName: "Factory Reset"
-        settingEvent: "mycroft.device.settings.reset"
-        settingCall: ""
-    }
+    // ListElement {
+    //     settingIcon: "circular-arrow-shape"
+    //     settingName: "Factory Reset"
+    //     settingEvent: "mycroft.device.settings.reset"
+    //     settingCall: ""
+    // }
     ListElement {
         settingIcon: "download"
         settingName: "Update Device"
