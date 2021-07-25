@@ -343,12 +343,14 @@ class Mark2(MycroftSkill):
             elif message.data["page"] and not message.data["page"][0].endswith(
                 "idle.qml"
             ):
-                # Check if the show_page deactivates a previous idle override
+                # Check if the idle override has been set and if this call of
+                # show_page should deactivate a previous idle override
                 # This is only possible if the page is from the same skill
                 self.log.info("Cancelling idle override")
-                if override_idle is False and compare_origin(
-                    message, self.resting_screen.override_idle[0]
-                ):
+                if self.resting_screen.override_idle is not None and \
+                   override_idle is False and \
+                   compare_origin(message,
+                                  self.resting_screen.override_idle[0]):
                     # Remove the idle override page if override is set to false
                     self.resting_screen.cancel_override()
                 # Set default idle screen timer
