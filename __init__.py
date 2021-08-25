@@ -329,6 +329,11 @@ class Mark2(MycroftSkill):
 
             # If a skill overrides the idle do not switch page
             override_idle = message.data.get("__idle")
+            is_idle_screen = False
+            for screen in self.resting_screen.screens.values():
+                if screen in message.data["page"][0]:
+                    is_idle_screen = True
+                    break
             if override_idle is True:
                 # Disable idle screen
                 self.log.debug("Cancelling Idle screen")
@@ -340,9 +345,7 @@ class Mark2(MycroftSkill):
                 )
                 self.resting_screen.override(None)
                 self.start_idle_event(override_idle)
-            elif message.data["page"] and not message.data["page"][0].endswith(
-                "idle.qml"
-            ):
+            elif message.data["page"] and not is_idle_screen:
                 # Check if the idle override has been set and if this call of
                 # show_page should deactivate a previous idle override
                 # This is only possible if the page is from the same skill
