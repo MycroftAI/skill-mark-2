@@ -66,7 +66,9 @@ class RestingScreen:
         self.override_set_time = time.monotonic()
 
         # Preselect Homescreen Skill as resting screen
-        self.gui["selected"] = self.settings.get("selected", "Mycroft Homescreen")
+        if "selected" not in self.settings:
+            self.settings["selected"] = "Mycroft Homescreen"
+        self.gui["selected"] = self.settings["selected"]
         self.gui.set_on_gui_changed(self.save)
 
     def on_register(self, message):
