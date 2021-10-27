@@ -235,8 +235,8 @@ class Mark2(MycroftSkill):
             self.add_event("system.shutdown", self.handle_system_shutdown)
 
             # Show loading screen while starting up skills.
-            # self.gui['state'] = 'loading'
-            # self.gui.show_page('all.qml')
+            self.gui['state'] = 'loading'
+            self.gui.show_page('all.qml')
 
             # Collect Idle screens and display if skill is restarted
             self.resting_screen.collect()

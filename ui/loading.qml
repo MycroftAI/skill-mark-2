@@ -8,21 +8,20 @@ import Mycroft 1.0 as Mycroft
 Item {
     id: root
 
-    Mycroft.AutoFitLabel {
+    Label {
         font.weight: Font.Bold
         Layout.fillWidth: true
-        Layout.preferredHeight: proportionalGridUnit * 40
-        rightPadding: -font.pixelSize * 0.1
-        font.family: "Noto Sans"
-        font.pixelSize: 50
+        anchors.horizontalCenter: parent.horizontalCenter
+        Layout.preferredHeight: Mycroft.Units.gridUnit * 12
+        font.pixelSize: Mycroft.Units.gridUnit * 4
         color: "#22a7f0"
-        text: "Loading..."
+        text: "Loading Skills..."
     }
 
-    BusyIndicator {
-        anchors.centerIn: parent
-        width: root.contentWidth / 2
-        height: root.contentWidth / 2
+    Mycroft.BusyIndicator {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Mycroft.Units.gridUnit * 4
         running: true
     }
 }
