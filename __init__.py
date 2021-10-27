@@ -146,12 +146,14 @@ class RestingScreen:
 class Mark2(MycroftSkill):
     """
     The Mark2 skill handles much of the gui activities related to Mycroft's
-    core functionality. This includes showing "speaking" faces as well as
-    more complicated things such as switching to the selected resting face
-    and handling system signals.
+    core functionality. 
+    
+    This currently includes showing system loading screens, managing the
+    resting screens, and handling system signals. Thinking and Speaking
+    animations are also available.
 
     # TODO move most things to enclosure / HAL. Only voice interaction should
-      reside in the Skill.
+    reside in the Skill.
     """
 
     def __init__(self):
@@ -184,16 +186,13 @@ class Mark2(MycroftSkill):
 
             # Handle the 'busy' visual
             self.bus.on("mycroft.skill.handler.start", self.on_handler_started)
-
-            self.bus.on("recognizer_loop:sleep", self.on_handler_sleep)
-            self.bus.on("mycroft.awoken", self.on_handler_awoken)
             self.bus.on("enclosure.mouth.reset", self.on_handler_mouth_reset)
             self.bus.on("recognizer_loop:audio_output_end", self.on_handler_mouth_reset)
             self.bus.on("enclosure.mouth.viseme_list", self.on_handler_speaking)
             self.bus.on("gui.page.show", self.on_gui_page_show)
             self.bus.on("gui.page_interaction", self.on_gui_page_interaction)
 
-            self.bus.on("mycroft.skills.initialized", self.reset_face)
+            self.bus.on("mycroft.skills.initialized", self.reset_resting_screen)
             self.bus.on("mycroft.mark2.register_idle", self.resting_screen.on_register)
 
             self.add_event("mycroft.mark2.reset_idle", self.resting_screen.restore)
@@ -270,10 +269,10 @@ class Mark2(MycroftSkill):
     ###################################################################
     # Idle screen mechanism
 
-    def reset_face(self, _):
-        """Triggered after skills are initialized.
+    def reset_resting_screen(self, _):
+        """Collects and displays the active resting screen.
 
-        Sets switches from resting "face" to a registered resting screen.
+        Triggered after skills are initialized.
         """
         time.sleep(1)
         self.resting_screen.collect()
@@ -289,13 +288,12 @@ class Mark2(MycroftSkill):
         """Cleanly shutdown the Skill removing any manual event handlers"""
         # Gotta clean up manually since not using add_event()
         self.bus.remove("mycroft.skill.handler.start", self.on_handler_started)
-        self.bus.remove("recognizer_loop:sleep", self.on_handler_sleep)
-        self.bus.remove("mycroft.awoken", self.on_handler_awoken)
         self.bus.remove("enclosure.mouth.reset", self.on_handler_mouth_reset)
         self.bus.remove("recognizer_loop:audio_output_end", self.on_handler_mouth_reset)
         self.bus.remove("enclosure.mouth.viseme_list", self.on_handler_speaking)
         self.bus.remove("gui.page.show", self.on_gui_page_show)
         self.bus.remove("gui.page_interaction", self.on_gui_page_interaction)
+        self.bus.remove("mycroft.skills.initialized", self.reset_resting_screen)
         self.bus.remove("mycroft.mark2.register_idle", self.resting_screen.on_register)
 
     #####################################################################
@@ -361,16 +359,6 @@ class Mark2(MycroftSkill):
     def on_handler_mouth_reset(self, _):
         """ Restore viseme to a smile. """
         pass
-
-    def on_handler_sleep(self, _):
-        """ Show resting face when going to sleep. """
-        self.gui["state"] = "resting"
-        self.gui.show_page("all.qml")
-
-    def on_handler_awoken(self, _):
-        """ Show awake face when sleep ends. """
-        self.gui["state"] = "awake"
-        self.gui.show_page("all.qml")
 
     def on_handler_complete(self, message):
         """ When a skill finishes executing clear the showing page state. """
