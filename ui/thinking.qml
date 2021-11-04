@@ -14,7 +14,7 @@ Item {
         id: thinkingAnimation
         anchors.centerIn: parent
         height: Math.min(parent.width, parent.height)
-        source: Qt.resolvedUrl("face/thinking.json")
+        source: Qt.resolvedUrl("thinking.json")
         loops: Animation.Infinite
         fillMode: Image.PreserveAspectFit
         running: true
