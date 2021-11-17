@@ -19,10 +19,16 @@ ListModel {
     //     settingEvent: "mycroft.device.settings.reset"
     //     settingCall: ""
     // }
+    // ListElement {
+    //     settingIcon: "download"
+    //     settingName: "Update Device"
+    //     settingEvent: "mycroft.device.settings.update"
+    //     settingCall: ""
+    // }
     ListElement {
-        settingIcon: "download"
-        settingName: "Update Device"
-        settingEvent: "mycroft.device.settings.update"
-        settingCall: "" 
+        settingIcon: "question"
+        settingName: "About"
+        settingEvent: "mycroft.device.settings.about"
+        settingCall: "show about page"
     }
 }

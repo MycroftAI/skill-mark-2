@@ -30,6 +30,13 @@ from mycroft.util.log import LOG
 from mycroft.util.parse import normalize
 from mycroft import MycroftSkill, intent_handler
 
+from .skill.versions import (
+    get_mycroft_build_datetime,
+    get_mycroft_core_commit,
+    get_mycroft_core_version,
+    get_skill_update_datetime
+)
+
 
 def compare_origin(msg1, msg2):
     """Compare the origin Skill of two Messages.
@@ -221,6 +228,9 @@ class Mark2(MycroftSkill):
             )
             self.gui.register_handler(
                 "mycroft.device.settings.update", self.handle_device_update_settings
+            )
+            self.gui.register_handler(
+                "mycroft.device.settings.about", self.show_device_settings_about
             )
             self.gui.register_handler(
                 "mycroft.device.show.idle", self.resting_screen.show
@@ -681,6 +691,17 @@ class Mark2(MycroftSkill):
     def handle_device_update_settings(self, _):
         """ Display device update settings page. """
         self.gui["state"] = "settings/updatedevice_settings"
+        self.gui.show_page("all.qml")
+
+    @intent_handler("device.settings.about.page.intent")
+    def show_device_settings_about(self, _):
+        """ Display device update settings page. """
+        self.gui["mycroftCoreVersion"] = get_mycroft_core_version()
+        self.gui["mycroftCoreCommit"] = get_mycroft_core_commit()
+        self.gui["mycroftContainerBuildDate"] = get_mycroft_build_datetime()
+        skills_repo_path = f"{self.config_core['data_dir']}/.skills-repo"
+        self.gui["mycroftSkillsUpdateDate"] = get_skill_update_datetime(skills_repo_path)
+        self.gui["state"] = "settings/about"
         self.gui.show_page("all.qml")
 
 
