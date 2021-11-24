@@ -36,7 +36,7 @@ def get_mycroft_build_datetime():
 
 def get_mycroft_core_commit():
     """Get the latest commit info for Mycroft-Core."""
-    commit_string = ''
+    commit_string = ""
     core_repo = Git(MYCROFT_ROOT_PATH)
     branch = core_repo.branch("--show-current")
     if not branch:
@@ -50,7 +50,7 @@ def get_mycroft_core_commit():
 def get_mycroft_core_version():
     """Get the reported version number for Mycroft-Core.
 
-    Note: if running off a feature branch or dev, 
+    Note: if running off a feature branch or dev,
     the last point release of core will be returned.
     """
     return CORE_VERSION_STR
@@ -60,7 +60,5 @@ def get_skill_update_datetime(skills_repo_path):
     """Get the date the Skills Marketplace last updated."""
     skills_repo = Git(skills_repo_path)
     last_commit_timestamp = skills_repo.log("-1", "--format=%ct")
-    last_commit_date_time = datetime.utcfromtimestamp(
-        int(last_commit_timestamp)
-    )
+    last_commit_date_time = datetime.utcfromtimestamp(int(last_commit_timestamp))
     return last_commit_date_time.strftime("%Y-%m-%d %H:%M")

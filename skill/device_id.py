@@ -24,15 +24,15 @@ def get_device_name():
         LOG.exception("API Error", err)
         return ":error:"
 
+
 def get_mycroft_uuid():
     """Get the UUID of a Mycroft device paired with the Mycroft backend."""
     identity = IdentityManager.get()
     return identity.uuid
+
 
 def get_pantacor_device_id():
     """Get the Pantacor device-id for devices using the Pantacor update system."""
     # TODO this uses the temporary solution in the feature/mark-2 branch.
     # It should be replaced when a better solution is available.
     return _get_pantacor_device_id()
-
-
