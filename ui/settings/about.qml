@@ -33,7 +33,7 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         height: Kirigami.Units.gridUnit * 2
-        
+
         Kirigami.Heading {
             id: aboutSettingPageTextHeading
             level: 1
@@ -45,53 +45,61 @@ Item {
         }
     }
 
-    Item {
+    Flickable {
         anchors.top: topArea.bottom
-        anchors.topMargin: Kirigami.Units.largeSpacing
-        anchors.leftMargin: Mycroft.Units.gridUnit * 12
-        anchors.rightMargin: Mycroft.Units.gridUnit * 12
+        anchors.topMargin: Mycroft.Units.largeSpacing
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: areaSep.top
-        
+        anchors.bottomMargin: Mycroft.Units.largeSpacing
+        clip: true
+        contentHeight: contentColumnLayout.implicitHeight
+
         ColumnLayout {
-            anchors.left: parent.left
-            anchors.right: parent.right
+            id: contentColumnLayout
+            anchors.fill: parent
+            anchors.leftMargin: Mycroft.Units.gridUnit * 10
+            anchors.rightMargin: Mycroft.Units.gridUnit * 10
             spacing: Kirigami.Units.smallSpacing
-            
+
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Kirigami.Units.largeSpacing
+            }
+
             Kirigami.Heading {
                 id: versionsHeading
                 level: 2
                 Layout.alignment: Qt.AlignHCenter
                 text: "Mycroft-core"
             }
-            
+
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Kirigami.Units.smallSpacing
             }
-            
+
             Label {
                 id: mycroftCoreVersionLabel
                 Layout.alignment: Qt.AlignHCenter
                 text: "Version: " + sessionData.mycroftCoreVersion
             }
-            
+
             Label {
                 id: mycroftCoreCommitLabel
                 Layout.alignment: Qt.AlignHCenter
                 text: "Commit: " + sessionData.mycroftCoreCommit
             }
-            
+
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Kirigami.Units.largeSpacing
             }
-            
+
             Kirigami.Separator {
                 Layout.fillWidth: true
             }
-            
+
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Kirigami.Units.largeSpacing
@@ -103,22 +111,65 @@ Item {
                 Layout.alignment: Qt.AlignHCenter
                 text: "Last updated"
             }
-            
+
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Kirigami.Units.smallSpacing
             }
-            
+
             Label {
                 id: mycroftContainerBuildDateLabel
                 Layout.alignment: Qt.AlignHCenter
                 text: "Mycroft Container: " + sessionData.mycroftContainerBuildDate
             }
-            
+
             Label {
                 id: mycroftSkillsUpdateDateLabel
                 Layout.alignment: Qt.AlignHCenter
                 text: "Mycroft Skills: " + sessionData.mycroftSkillsUpdateDate
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Kirigami.Units.largeSpacing
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Kirigami.Units.largeSpacing
+            }
+
+            Kirigami.Heading {
+                id: deviceIdHeading
+                level: 2
+                Layout.alignment: Qt.AlignHCenter
+                text: "Device Identification"
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Kirigami.Units.smallSpacing
+            }
+
+            Label {
+                id: mycroftUUIDLabel
+                Layout.alignment: Qt.AlignHCenter
+                text: "Mycroft UUID: " + sessionData.mycroftUUID
+            }
+
+            Label {
+                id: pantacorDeviceIdLabel
+                Layout.alignment: Qt.AlignHCenter
+                text: "Pantacor ID: " + sessionData.pantacorDeviceId
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Kirigami.Units.largeSpacing * 2
             }
         }
     }
@@ -130,7 +181,7 @@ Item {
         anchors.right: parent.right
         height: 1
     }
-    
+
     Item {
         id: bottomArea
         anchors.left: parent.left
