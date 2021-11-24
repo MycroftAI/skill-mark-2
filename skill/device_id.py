@@ -12,9 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mycroft.api import _get_pantacor_device_id
+from mycroft.api import DeviceApi, _get_pantacor_device_id
 from mycroft.identity import IdentityManager
+from mycroft.util import LOG
 
+
+def get_device_name():
+    try:
+        return DeviceApi().get()["name"]
+    except Exception as err:
+        LOG.exception("API Error", err)
+        return ":error:"
 
 def get_mycroft_uuid():
     """Get the UUID of a Mycroft device paired with the Mycroft backend."""

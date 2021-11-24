@@ -156,6 +156,12 @@ Item {
             }
 
             Label {
+                id: deviceNameLabel
+                Layout.alignment: Qt.AlignHCenter
+                text: "Device Name: " + sessionData.deviceName
+            }
+
+            Label {
                 id: mycroftUUIDLabel
                 Layout.alignment: Qt.AlignHCenter
                 text: "Mycroft UUID: " + sessionData.mycroftUUID

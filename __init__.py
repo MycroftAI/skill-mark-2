@@ -30,7 +30,7 @@ from mycroft.util.log import LOG
 from mycroft.util.parse import normalize
 from mycroft import MycroftSkill, intent_handler
 
-from .skill.device_id import get_mycroft_uuid, get_pantacor_device_id
+from .skill.device_id import get_device_name, get_mycroft_uuid, get_pantacor_device_id
 from .skill.versions import (
     get_mycroft_build_datetime,
     get_mycroft_core_commit,
@@ -702,6 +702,7 @@ class Mark2(MycroftSkill):
         self.gui["mycroftContainerBuildDate"] = get_mycroft_build_datetime()
         skills_repo_path = f"{self.config_core['data_dir']}/.skills-repo"
         self.gui["mycroftSkillsUpdateDate"] = get_skill_update_datetime(skills_repo_path)
+        self.gui["deviceName"] = get_device_name()
         self.gui["mycroftUUID"] = get_mycroft_uuid()
         self.gui["pantacorDeviceId"] = get_pantacor_device_id()
         self.gui["state"] = "settings/about"
