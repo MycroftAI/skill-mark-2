@@ -30,11 +30,12 @@ from mycroft.util.log import LOG
 from mycroft.util.parse import normalize
 from mycroft import MycroftSkill, intent_handler
 
+from .skill.device_id import get_device_name, get_mycroft_uuid, get_pantacor_device_id
 from .skill.versions import (
     get_mycroft_build_datetime,
     get_mycroft_core_commit,
     get_mycroft_core_version,
-    get_skill_update_datetime
+    get_skill_update_datetime,
 )
 
 
@@ -153,8 +154,8 @@ class RestingScreen:
 class Mark2(MycroftSkill):
     """
     The Mark2 skill handles much of the gui activities related to Mycroft's
-    core functionality. 
-    
+    core functionality.
+
     This currently includes showing system loading screens, managing the
     resting screens, and handling system signals. Thinking and Speaking
     animations are also available.
@@ -210,7 +211,7 @@ class Mark2(MycroftSkill):
 
             # Handle device settings events
             self.add_event("mycroft.device.settings", self.handle_device_settings)
-            
+
             # Handle GUI release events
             self.add_event("mycroft.gui.screen.close", self.handle_remove_namespace)
 
@@ -258,7 +259,7 @@ class Mark2(MycroftSkill):
         self._sync_wake_beep_setting()
 
         self.settings_change_callback = self.on_websettings_changed
-        
+
     ###################################################################
     # System events
     def handle_system_reboot(self, _):
@@ -267,12 +268,13 @@ class Mark2(MycroftSkill):
 
     def handle_system_shutdown(self, _):
         subprocess.call(["/usr/bin/systemctl", "poweroff"])
-        
+
     def handle_remove_namespace(self, message):
         get_skill_namespace = message.data.get("skill_id", "")
         if get_skill_namespace:
-            self.bus.emit(Message("gui.clear.namespace",
-                                  {"__from": get_skill_namespace}))
+            self.bus.emit(
+                Message("gui.clear.namespace", {"__from": get_skill_namespace})
+            )
         self.resting_screen.cancel_override()
         self.cancel_scheduled_event("IdleCheck")
 
@@ -318,7 +320,7 @@ class Mark2(MycroftSkill):
             return
 
     def on_gui_page_interaction(self, _):
-        """ Reset idle timer to 30 seconds when page is flipped. """
+        """Reset idle timer to 30 seconds when page is flipped."""
         self.log.debug("Resetting idle counter to 30 seconds")
         self.start_idle_event(30)
 
@@ -357,21 +359,22 @@ class Mark2(MycroftSkill):
                 # show_page should deactivate a previous idle override
                 # This is only possible if the page is from the same skill
                 self.log.info("Cancelling idle override")
-                if self.resting_screen.override_idle is not None and \
-                   override_idle is False and \
-                   compare_origin(message,
-                                  self.resting_screen.override_idle[0]):
+                if (
+                    self.resting_screen.override_idle is not None
+                    and override_idle is False
+                    and compare_origin(message, self.resting_screen.override_idle[0])
+                ):
                     # Remove the idle override page if override is set to false
                     self.resting_screen.cancel_override()
                 # Set default idle screen timer
                 self.start_idle_event(30)
 
     def on_handler_mouth_reset(self, _):
-        """ Restore viseme to a smile. """
+        """Restore viseme to a smile."""
         pass
 
     def on_handler_complete(self, message):
-        """ When a skill finishes executing clear the showing page state. """
+        """When a skill finishes executing clear the showing page state."""
         handler = message.data.get("handler", "")
         # Ignoring handlers from this skill and from the background clock
         if "Mark2" in handler:
@@ -444,18 +447,18 @@ class Mark2(MycroftSkill):
     # Manage network
 
     def handle_internet_connected(self, _):
-        """ System came online later after booting. """
+        """System came online later after booting."""
         self.enclosure.mouth_reset()
 
     #####################################################################
     # Web settings
 
     def on_websettings_changed(self):
-        """ Update use of wake-up beep. """
+        """Update use of wake-up beep."""
         self._sync_wake_beep_setting()
 
     def _sync_wake_beep_setting(self):
-        """ Update "use beep" global config from skill settings. """
+        """Update "use beep" global config from skill settings."""
         config = Configuration.get()
         use_beep = self.settings.get("use_listening_beep", False)
         if not config["confirm_listening"] == use_beep:
@@ -666,7 +669,7 @@ class Mark2(MycroftSkill):
 
     @intent_handler("device.settings.intent")
     def handle_device_settings(self, _):
-        """ Display device settings page. """
+        """Display device settings page."""
         self.gui["state"] = "settings/settingspage"
         self.gui.show_page("all.qml")
 
@@ -675,8 +678,10 @@ class Mark2(MycroftSkill):
         """
         display homescreen settings page
         """
-        screens = [{"screenName": s, "screenID": self.resting_screen.screens[s]}
-                   for s in self.resting_screen.screens]
+        screens = [
+            {"screenName": s, "screenID": self.resting_screen.screens[s]}
+            for s in self.resting_screen.screens
+        ]
         self.gui["idleScreenList"] = {"screenBlob": screens}
         self.gui["selectedScreen"] = self.gui["selected"]
         self.gui["state"] = "settings/homescreen_settings"
@@ -684,23 +689,28 @@ class Mark2(MycroftSkill):
 
     @intent_handler("device.reset.settings.intent")
     def handle_device_factory_reset_settings(self, _):
-        """ Display device factory reset settings page. """
+        """Display device factory reset settings page."""
         self.gui["state"] = "settings/factoryreset_settings"
         self.gui.show_page("all.qml")
 
     def handle_device_update_settings(self, _):
-        """ Display device update settings page. """
+        """Display device update settings page."""
         self.gui["state"] = "settings/updatedevice_settings"
         self.gui.show_page("all.qml")
 
     @intent_handler("device.settings.about.page.intent")
     def show_device_settings_about(self, _):
-        """ Display device update settings page. """
+        """Display device update settings page."""
         self.gui["mycroftCoreVersion"] = get_mycroft_core_version()
         self.gui["mycroftCoreCommit"] = get_mycroft_core_commit()
         self.gui["mycroftContainerBuildDate"] = get_mycroft_build_datetime()
         skills_repo_path = f"{self.config_core['data_dir']}/.skills-repo"
-        self.gui["mycroftSkillsUpdateDate"] = get_skill_update_datetime(skills_repo_path)
+        self.gui["mycroftSkillsUpdateDate"] = get_skill_update_datetime(
+            skills_repo_path
+        )
+        self.gui["deviceName"] = get_device_name()
+        self.gui["mycroftUUID"] = get_mycroft_uuid()
+        self.gui["pantacorDeviceId"] = get_pantacor_device_id()
         self.gui["state"] = "settings/about"
         self.gui.show_page("all.qml")
 
