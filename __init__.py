@@ -14,18 +14,14 @@
 
 import time
 from datetime import datetime
-import os
 import subprocess
-from threading import Thread, Lock
 
 from pytz import timezone
 import arrow
 import astral
-import pyaudio
 
 from mycroft.configuration.config import LocalConf, USER_CONFIG, Configuration
 from mycroft.messagebus.message import Message
-from mycroft.util import get_ipc_directory
 from mycroft.util.log import LOG
 from mycroft.util.parse import normalize
 from mycroft import MycroftSkill, intent_handler
@@ -39,126 +35,13 @@ from .skill.versions import (
 )
 
 
-def compare_origin(msg1, msg2):
-    """Compare the origin Skill of two Messages.
-
-    Arguments:
-        message (Message): Mycroft Message to compare
-        message (Message): Mycroft Message to compare
-
-    Returns:
-        bool: Whether the Messages originate from the same Skill.
-    """
-    origin1 = msg1.data["__from"] if isinstance(msg1, Message) else msg1
-    origin2 = msg2.data["__from"] if isinstance(msg2, Message) else msg2
-    return origin1 == origin2
-
-
-class RestingScreen:
-    """Implementation of functionallity around resting screens.
-
-    This class handles registration and override of resting screens,
-    encapsulating the system.
-    """
-
-    def __init__(self, bus, gui, log, settings):
-        self.bus = bus
-        self.gui = gui
-        self.log = log
-        self.settings = settings
-
-        self.screens = {}
-        self.override_idle = None
-        self.next = 0  # Next time the idle screen should trigger
-        self.lock = Lock()
-        self.override_set_time = time.monotonic()
-
-        # Preselect Homescreen Skill as resting screen
-        if "selected" not in self.settings:
-            self.settings["selected"] = "Mycroft Homescreen"
-        self.gui["selected"] = self.settings["selected"]
-        self.gui.set_on_gui_changed(self.save)
-
-    def on_register(self, message):
-        """Handler for catching incoming idle screens."""
-        if "name" in message.data and "id" in message.data:
-            self.screens[message.data["name"]] = message.data["id"]
-            self.log.info("Registered {}".format(message.data["name"]))
-        else:
-            self.log.error("Malformed idle screen registration received")
-
-    def save(self):
-        """Handler to be called if the settings are changed by the GUI.
-
-        Stores the selected idle screen.
-        """
-        self.log.debug("Saving resting screen")
-        self.settings["selected"] = self.gui["selected"]
-        self.gui["selectedScreen"] = self.gui["selected"]
-
-    def collect(self):
-        """Trigger collection and then show the resting screen."""
-        self.bus.emit(Message("mycroft.mark2.collect_idle"))
-        time.sleep(1)
-        self.show()
-
-    def set(self, message):
-        """Set selected idle screen from message."""
-        self.gui["selected"] = message.data["selected"]
-        self.save()
-
-    def show(self):
-        """Show the idle screen or return to the skill that's overriding idle."""
-        self.log.debug("Showing idle screen")
-        screen = None
-        if self.override_idle:
-            self.log.debug("Returning to override idle screen")
-            # Restore the page overriding idle instead of the normal idle
-            self.bus.emit(self.override_idle[0])
-        elif len(self.screens) > 0 and "selected" in self.gui:
-            # TODO remove hard coded value
-            self.log.info("Showing Idle screen for " "{}".format(self.gui["selected"]))
-            screen = self.screens.get(self.gui["selected"])
-
-        self.log.debug(screen)
-        if screen:
-            self.bus.emit(Message("{}.idle".format(screen)))
-
-    def restore(self, _=None):
-        """Remove any override and show the selected resting screen."""
-        if self.override_idle and time.monotonic() - self.override_idle[1] > 2:
-            self.override_idle = None
-            self.show()
-
-    def stop(self):
-        if time.monotonic() > self.override_set_time + 7:
-            self.restore()
-
-    def override(self, message=None):
-        """Override the resting screen.
-
-        Arguments:
-            message: Optional message to use for to restore
-                     the expected override screen after
-                     another screen has been displayed.
-        """
-        self.override_set_time = time.monotonic()
-        if message:
-            self.override_idle = (message, time.monotonic())
-
-    def cancel_override(self):
-        """Remove the override screen."""
-        self.override_idle = None
-
-
 class Mark2(MycroftSkill):
     """
     The Mark2 skill handles much of the gui activities related to Mycroft's
     core functionality.
 
-    This currently includes showing system loading screens, managing the
-    resting screens, and handling system signals. Thinking and Speaking
-    animations are also available.
+    This currently includes showing system loading screens, and handling system
+    signals. Thinking and Speaking animations are also available.
 
     # TODO move most things to enclosure / HAL. Only voice interaction should
     reside in the Skill.
@@ -172,7 +55,6 @@ class Mark2(MycroftSkill):
 
         self.has_show_page = False  # resets with each handler
         self.override_animations = False
-        self.resting_screen = None
         self.auto_brightness = None
 
     def initialize(self):
@@ -180,8 +62,6 @@ class Mark2(MycroftSkill):
 
         Registers messagebus handlers and sets default gui values.
         """
-        self.resting_screen = RestingScreen(self.bus, self.gui, self.log, self.settings)
-
         self.brightness_dict = self.translate_namedvalues("brightness.levels")
         self.gui["volume"] = 0
 
@@ -198,16 +78,6 @@ class Mark2(MycroftSkill):
             self.bus.on("recognizer_loop:audio_output_end", self.on_handler_mouth_reset)
             self.bus.on("enclosure.mouth.viseme_list", self.on_handler_speaking)
             self.bus.on("gui.page.show", self.on_gui_page_show)
-            self.bus.on("gui.page_interaction", self.on_gui_page_interaction)
-
-            self.bus.on("mycroft.skills.initialized", self.reset_resting_screen)
-            self.bus.on("mycroft.mark2.register_idle", self.resting_screen.on_register)
-
-            self.add_event("mycroft.mark2.reset_idle", self.resting_screen.restore)
-            # TODO move resting screen to Enclosure
-            # TODO consolidate bus message format
-            # - this message is set to be consistent with a handler below.
-            self.add_event("mycroft.device.show.idle", self.resting_screen.show)
 
             # Handle device settings events
             self.add_event("mycroft.device.settings", self.handle_device_settings)
@@ -220,10 +90,6 @@ class Mark2(MycroftSkill):
                 "mycroft.device.settings", self.handle_device_settings
             )
             self.gui.register_handler(
-                "mycroft.device.settings.homescreen",
-                self.handle_device_homescreen_settings,
-            )
-            self.gui.register_handler(
                 "mycroft.device.settings.reset",
                 self.handle_device_factory_reset_settings,
             )
@@ -232,14 +98,6 @@ class Mark2(MycroftSkill):
             )
             self.gui.register_handler(
                 "mycroft.device.settings.about", self.show_device_settings_about
-            )
-            self.gui.register_handler(
-                "mycroft.device.show.idle", self.resting_screen.show
-            )
-
-            # Handle idle selection
-            self.gui.register_handler(
-                "mycroft.device.set.idle", self.resting_screen.set
             )
 
             # System events
@@ -250,8 +108,6 @@ class Mark2(MycroftSkill):
             # self.gui['state'] = 'loading'
             # self.gui.show_page('all.qml')
 
-            # Collect Idle screens and display if skill is restarted
-            self.resting_screen.collect()
         except Exception:
             LOG.exception("In Mark 2 Skill")
 
@@ -275,24 +131,10 @@ class Mark2(MycroftSkill):
             self.bus.emit(
                 Message("gui.clear.namespace", {"__from": get_skill_namespace})
             )
-        self.resting_screen.cancel_override()
-        self.cancel_scheduled_event("IdleCheck")
-
-    ###################################################################
-    # Idle screen mechanism
-
-    def reset_resting_screen(self, _):
-        """Collects and displays the active resting screen.
-
-        Triggered after skills are initialized.
-        """
-        time.sleep(1)
-        self.resting_screen.collect()
 
     def stop(self, _=None):
         """Clear override_idle and stop visemes."""
         self.log.debug("Stop received")
-        self.resting_screen.stop()
         self.gui["viseme"] = {"start": 0, "visemes": []}
         return False
 
@@ -304,9 +146,6 @@ class Mark2(MycroftSkill):
         self.bus.remove("recognizer_loop:audio_output_end", self.on_handler_mouth_reset)
         self.bus.remove("enclosure.mouth.viseme_list", self.on_handler_speaking)
         self.bus.remove("gui.page.show", self.on_gui_page_show)
-        self.bus.remove("gui.page_interaction", self.on_gui_page_interaction)
-        self.bus.remove("mycroft.skills.initialized", self.reset_resting_screen)
-        self.bus.remove("mycroft.mark2.register_idle", self.resting_screen.on_register)
 
     #####################################################################
     # Manage "busy" visual
@@ -318,11 +157,6 @@ class Mark2(MycroftSkill):
             return
         if "TimeSkill.update_display" in handler:
             return
-
-    def on_gui_page_interaction(self, _):
-        """Reset idle timer to 30 seconds when page is flipped."""
-        self.log.debug("Resetting idle counter to 30 seconds")
-        self.start_idle_event(30)
 
     def on_gui_page_show(self, message):
         if "mark-2" not in message.data.get("__from", ""):
@@ -338,36 +172,6 @@ class Mark2(MycroftSkill):
             else:
                 self.log.debug("Displaying all animations for page")
                 self.override_animations = False
-
-            # If a skill overrides the idle do not switch page
-            override_idle = message.data.get("__idle")
-            if override_idle is True:
-                # Disable idle screen
-                self.log.debug("Cancelling Idle screen")
-                self.cancel_idle_event()
-                self.resting_screen.override(message)
-            elif isinstance(override_idle, int) and override_idle is not False:
-                self.log.info(
-                    "Overriding idle timer to" " {} seconds".format(override_idle)
-                )
-                self.resting_screen.override(None)
-                self.start_idle_event(override_idle)
-            elif message.data["page"] and not message.data["page"][0].endswith(
-                "idle.qml"
-            ):
-                # Check if the idle override has been set and if this call of
-                # show_page should deactivate a previous idle override
-                # This is only possible if the page is from the same skill
-                self.log.info("Cancelling idle override")
-                if (
-                    self.resting_screen.override_idle is not None
-                    and override_idle is False
-                    and compare_origin(message, self.resting_screen.override_idle[0])
-                ):
-                    # Remove the idle override page if override is set to false
-                    self.resting_screen.cancel_override()
-                # Set default idle screen timer
-                self.start_idle_event(30)
 
     def on_handler_mouth_reset(self, _):
         """Restore viseme to a smile."""
@@ -408,40 +212,7 @@ class Mark2(MycroftSkill):
             self.gui.show_page("all.qml")
             # Show idle screen after the visemes are done (+ 2 sec).
             viseme_time = message.data["visemes"][-1][1] + 5
-            self.start_idle_event(viseme_time)
-
-    #####################################################################
-    # Manage resting screen visual state
-    def cancel_idle_event(self):
-        """Cancel the event monitoring current system idle time."""
-        self.resting_screen.next = 0
-        self.cancel_scheduled_event("IdleCheck")
-
-    def start_idle_event(self, offset=60, weak=False):
-        """Start an event for showing the idle screen.
-
-        Arguments:
-            offset: How long until the idle screen should be shown
-            weak: set to true if the time should be able to be overridden
-        """
-        with self.resting_screen.lock:
-            if time.monotonic() + offset < self.resting_screen.next:
-                self.log.info("No update, before next time")
-                return
-
-            self.log.debug("Starting idle event")
-            try:
-                if not weak:
-                    self.resting_screen.next = time.monotonic() + offset
-                # Clear any existing checker
-                self.cancel_scheduled_event("IdleCheck")
-                time.sleep(0.5)
-                self.schedule_event(
-                    self.resting_screen.show, int(offset), name="IdleCheck"
-                )
-                self.log.debug("Showing idle screen in " "{} seconds".format(offset))
-            except Exception as e:
-                self.log.exception(repr(e))
+            # self.start_idle_event(viseme_time)
 
     #####################################################################
     # Manage network
@@ -671,20 +442,6 @@ class Mark2(MycroftSkill):
     def handle_device_settings(self, _):
         """Display device settings page."""
         self.gui["state"] = "settings/settingspage"
-        self.gui.show_page("all.qml")
-
-    @intent_handler("device.homescreen.settings.intent")
-    def handle_device_homescreen_settings(self, _):
-        """
-        display homescreen settings page
-        """
-        screens = [
-            {"screenName": s, "screenID": self.resting_screen.screens[s]}
-            for s in self.resting_screen.screens
-        ]
-        self.gui["idleScreenList"] = {"screenBlob": screens}
-        self.gui["selectedScreen"] = self.gui["selected"]
-        self.gui["state"] = "settings/homescreen_settings"
         self.gui.show_page("all.qml")
 
     @intent_handler("device.reset.settings.intent")
