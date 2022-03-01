@@ -101,9 +101,12 @@ class Mark2(MycroftSkill):
             self.add_event("system.reboot", self.handle_system_reboot)
             self.add_event("system.shutdown", self.handle_system_shutdown)
 
+            self.add_event("mycroft.started", self.handle_started)
+
             # Show loading screen while starting up skills.
             # self.gui['state'] = 'loading'
             # self.gui.show_page('all.qml')
+            self.gui.replace_page("loading_services.qml", override_idle=True)
 
         except Exception:
             LOG.exception("In Mark 2 Skill")
@@ -460,6 +463,9 @@ class Mark2(MycroftSkill):
         self.gui["pantacorDeviceId"] = get_pantacor_device_id()
         self.gui["state"] = "settings/about"
         self.gui.show_page("all.qml")
+
+    def handle_started(self, _message):
+        self.gui.release()
 
 
 def create_skill():
