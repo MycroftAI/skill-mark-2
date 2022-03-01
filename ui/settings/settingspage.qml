@@ -126,7 +126,7 @@ Item {
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                triggerGuiEvent("mycroft.device.show.idle", {})
+                triggerGuiEvent("mycroft.device.settings.close", {})
             }
         }
     }

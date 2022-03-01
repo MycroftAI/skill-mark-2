@@ -81,6 +81,7 @@ class Mark2(MycroftSkill):
 
             # Handle device settings events
             self.add_event("mycroft.device.settings", self.handle_device_settings)
+            self.add_event("mycroft.device.settings.close", self.handle_close_device_settings)
 
             # Use Legacy for QuickSetting delegate
             self.gui.register_handler(
@@ -435,18 +436,22 @@ class Mark2(MycroftSkill):
     def handle_device_settings(self, _):
         """Display device settings page."""
         self.gui["state"] = "settings/settingspage"
-        self.gui.show_page("all.qml")
+        self.gui.show_page("all.qml", override_idle=True)
+
+    def handle_close_device_settings(self, _):
+        """Close the device settings GUI."""
+        self.gui.release()
 
     @intent_handler("device.reset.settings.intent")
     def handle_device_factory_reset_settings(self, _):
         """Display device factory reset settings page."""
         self.gui["state"] = "settings/factoryreset_settings"
-        self.gui.show_page("all.qml")
+        self.gui.show_page("all.qml", override_idle=True)
 
     def handle_device_update_settings(self, _):
         """Display device update settings page."""
         self.gui["state"] = "settings/updatedevice_settings"
-        self.gui.show_page("all.qml")
+        self.gui.show_page("all.qml", override_idle=True)
 
     @intent_handler("device.settings.about.page.intent")
     def show_device_settings_about(self, _):
@@ -462,7 +467,7 @@ class Mark2(MycroftSkill):
         self.gui["mycroftUUID"] = get_mycroft_uuid()
         self.gui["pantacorDeviceId"] = get_pantacor_device_id()
         self.gui["state"] = "settings/about"
-        self.gui.show_page("all.qml")
+        self.gui.show_page("all.qml", override_idle=True)
 
     def handle_started(self, _message):
         self.gui.release()
