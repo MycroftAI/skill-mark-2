@@ -81,6 +81,7 @@ class Mark2(MycroftSkill):
 
             # Handle device settings events
             self.add_event("mycroft.device.settings", self.handle_device_settings)
+            self.add_event("mycroft.device.settings.close", self.handle_close_device_settings)
 
             # Use Legacy for QuickSetting delegate
             self.gui.register_handler(
@@ -433,6 +434,10 @@ class Mark2(MycroftSkill):
         """Display device settings page."""
         self.gui["state"] = "settings/settingspage"
         self.gui.show_page("all.qml", override_idle=True)
+
+    def handle_close_device_settings(self, _):
+        """Close the device settings GUI."""
+        self.gui.release()
 
     @intent_handler("device.reset.settings.intent")
     def handle_device_factory_reset_settings(self, _):
