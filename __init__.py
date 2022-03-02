@@ -81,7 +81,9 @@ class Mark2(MycroftSkill):
 
             # Handle device settings events
             self.add_event("mycroft.device.settings", self.handle_device_settings)
-            self.add_event("mycroft.device.settings.close", self.handle_close_device_settings)
+            self.gui.register_handler(
+                "mycroft.device.settings.close", self.handle_close_device_settings
+            )
 
             # Use Legacy for QuickSetting delegate
             self.gui.register_handler(
@@ -107,7 +109,6 @@ class Mark2(MycroftSkill):
             # Show loading screen while starting up skills.
             # self.gui['state'] = 'loading'
             # self.gui.show_page('all.qml')
-            self.gui.replace_page("loading_services.qml", override_idle=True)
 
         except Exception:
             LOG.exception("In Mark 2 Skill")
