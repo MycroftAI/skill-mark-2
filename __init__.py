@@ -20,13 +20,14 @@ from pytz import timezone
 import arrow
 import astral
 
+from mycroft.api import get_pantacor_device_id
 from mycroft.configuration.config import LocalConf, USER_CONFIG, Configuration
 from mycroft.messagebus.message import Message
 from mycroft.util.log import LOG
 from mycroft.util.parse import normalize
 from mycroft import MycroftSkill, intent_handler
 
-from .skill.device_id import get_device_name, get_mycroft_uuid, get_pantacor_device_id
+from .skill.device_id import get_device_name, get_mycroft_uuid
 from .skill.versions import (
     get_mycroft_build_datetime,
     get_mycroft_core_commit,
@@ -457,7 +458,7 @@ class Mark2(MycroftSkill):
         )
         self.gui["deviceName"] = get_device_name()
         self.gui["mycroftUUID"] = get_mycroft_uuid()
-        self.gui["pantacorDeviceId"] = get_pantacor_device_id()
+        self.gui["pantacorDeviceId"] = get_pantacor_device_id() or "unknown"
         self.gui["state"] = "settings/about"
         self.gui.show_page("all.qml")
 

@@ -29,17 +29,3 @@ def get_mycroft_uuid():
     """Get the UUID of a Mycroft device paired with the Mycroft backend."""
     identity = IdentityManager.get()
     return identity.uuid
-
-
-def get_pantacor_device_id():
-    """Get the Pantacor device-id for devices using the Pantacor update system."""
-    # TODO this uses the temporary solution in the feature/mark-2 branch.
-    # It should be replaced when a better solution is available.
-    device_id = "unknown"
-    try:
-        from mycroft.api import _get_pantacor_device_id
-
-        device_id = _get_pantacor_device_id()
-    except ImportError:
-        LOG.error("This device is likely not a real Mark II.")
-    return device_id
