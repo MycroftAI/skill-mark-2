@@ -4,7 +4,7 @@ import QtQuick.Controls 2.0
 import org.kde.kirigami 2.5 as Kirigami
 import Mycroft 1.0 as Mycroft
 
-Mycroft.Delegate {
+Mycroft.CardDelegate {
     id: mainLoaderView
 
     property var pageToLoad: sessionData.state
